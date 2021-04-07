@@ -34,6 +34,7 @@ class _StartScreenState extends State<StartScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
