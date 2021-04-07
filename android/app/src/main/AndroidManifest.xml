@@ -1,26 +1,30 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="it.contact.tracing">
+    package="it.cs.contact.tracing">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- io.flutter.app.FlutterApplication is an android.app.Application that
          calls FlutterMain.startInitialization(this); in its onCreate method.
          In most cases you can leave this as-is, but you if you want to provide
          additional functionality it is fine to subclass or reimplement
          FlutterApplication and put your custom class here. -->
+
     <application
-        android:name="it.contact.tracing.CovidTracingAndroidApp"
+        android:name="it.cs.contact.tracing.CovidTracingAndroidApp"
         android:icon="@mipmap/ic_launcher"
         android:label="CovidTracingAndroidApp">
 
+        <receiver android:name="it.cs.contact.tracing.ActionHandler" />
+
         <service
-            android:name="it.contact.tracing.service.MyService"
+            android:name="it.cs.contact.tracing.service.MyService"
             android:enabled="true"
             android:exported="true" />
 
 
         <activity
-            android:name="it.contact.tracing.MainActivity"
+            android:name="it.cs.contact.tracing.MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:launchMode="singleTop"

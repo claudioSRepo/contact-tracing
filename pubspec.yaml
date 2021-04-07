@@ -45,6 +45,7 @@ flutter_native_splash:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  change_app_package_name: ^0.1.2
 
 
 # For information on the generic Dart part of this file, see the
