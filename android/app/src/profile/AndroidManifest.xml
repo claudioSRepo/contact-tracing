@@ -18,11 +18,11 @@
         android:icon="@mipmap/ic_launcher"
         android:label="CovidTracingAndroidApp">
 
-        <receiver android:name="it.cs.contact.tracing.receiver.BlBackgroundJobHandler" />
-        <receiver android:name="it.cs.contact.tracing.receiver.BlDiscoveryHandler" />
+        <receiver android:name="it.cs.contact.tracing.handler.BlBackgroundJobHandler" />
+        <receiver android:name="it.cs.contact.tracing.handler.BluetoothDiscoveryHandler" />
 
         <service
-            android:name="it.cs.contact.tracing.service.MyService"
+            android:name="it.cs.contact.tracing.service.BlForegroundService"
             android:enabled="true"
             android:exported="true" />
 

@@ -6,13 +6,9 @@ import java.security.MessageDigest;
 
 public class ConTracUtils {
 
-    public static final String COMMON_UTILS = "ConTracUtils";
+    private static final String COMMON_UTILS = "ConTracUtils";
 
     private ConTracUtils() {
-    }
-
-    public static String trimToEmpty(String str) {
-        return str == null ? "" : str.trim();
     }
 
     public static String secureHash(String stringToHash) {

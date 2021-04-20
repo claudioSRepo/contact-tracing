@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -15,19 +16,24 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
-import it.cs.contact.tracing.receiver.BlBackgroundJobHandler;
-import it.cs.contact.tracing.receiver.BlDiscoveryHandler;
+import it.cs.contact.tracing.CovidTracingAndroidApp;
+import it.cs.contact.tracing.config.InternalConfig;
+import it.cs.contact.tracing.handler.BlBackgroundJobHandler;
+import it.cs.contact.tracing.handler.BluetoothDiscoveryHandler;
+import it.cs.contact.tracing.server.GattServer;
 
-public class MyService extends Service {
+public class BlForegroundService extends Service {
 
-    private BlDiscoveryHandler blDiscoveryHandler = null;
+    public static final String TAG = "BlForegroundService";
+
+    private BluetoothDiscoveryHandler blDiscoveryHandler = null;
 
     @Override
     public void onCreate() {
         super.onCreate();
 
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "messages").
-                setContentText("this is running in background (v4)").
+                setContentText("this is running in background (v6)").
                 setContentTitle("flutter bck").
                 setOngoing(true).
                 setSmallIcon(android.R.drawable.ic_menu_mylocation);
@@ -39,9 +45,19 @@ public class MyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-        Log.i("FGActivity", "MyService.onStartCommand");
+        Log.i(TAG, "onStartCommand");
 
         initBlReceivers();
+
+        startBlClient();
+        startBlServer();
+
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    private void startBlClient() {
+
+        Log.i(TAG, "Starting BL client...");
 
         final Intent notificationIntent = new Intent(this, BlBackgroundJobHandler.class);
         final PendingIntent intent2 =
@@ -52,18 +68,23 @@ public class MyService extends Service {
 
         alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + 1000,
-                AlarmManager.INTERVAL_HOUR / 60 / 2, intent2);
-
-        return super.onStartCommand(intent, flags, startId);
+                InternalConfig.BL_CHECKER_SCHEDULING_SEC, intent2);
     }
 
+    private void startBlServer() {
+
+        Log.i(TAG, "Starting BL server...");
+        final BluetoothManager mBluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+
+        CovidTracingAndroidApp.getThreadPool().execute(() -> new GattServer(mBluetoothManager).start());
+    }
 
     private void initBlReceivers() {
 
         if (blDiscoveryHandler == null) {
 
             IntentFilter filter;
-            blDiscoveryHandler = new BlDiscoveryHandler();
+            blDiscoveryHandler = new BluetoothDiscoveryHandler();
 
             filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
             getApplicationContext().registerReceiver(blDiscoveryHandler, filter);
