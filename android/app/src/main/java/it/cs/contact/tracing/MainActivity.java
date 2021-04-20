@@ -40,6 +40,7 @@ public class MainActivity extends FlutterActivity {
         Log.i(TAG, "Starting foreground service");
 
         final Intent forService = new Intent(MainActivity.this, BlForegroundService.class);
+        forService.setAction(BlForegroundService.ACTION_START);
         startForegroundService(forService);
     }
 }

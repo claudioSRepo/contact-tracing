@@ -1,4 +1,4 @@
-package it.cs.contact.tracing.server;
+package it.cs.contact.tracing.ble;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -20,16 +20,16 @@ import it.cs.contact.tracing.config.InternalConfig;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class GattServer {
+public class BleGattServer {
 
-    private static final String TAG = "GattServer";
+    private static final String TAG = "BleGattServer";
 
     /* Bluetooth API */
     private final BluetoothManager mBluetoothManager;
 
-    public static GattServer of(final BluetoothManager mBluetoothManager) {
+    public static BleGattServer of(final BluetoothManager mBluetoothManager) {
 
-        final GattServer server = new GattServer(mBluetoothManager);
+        final BleGattServer server = new BleGattServer(mBluetoothManager);
         return server;
     }
 

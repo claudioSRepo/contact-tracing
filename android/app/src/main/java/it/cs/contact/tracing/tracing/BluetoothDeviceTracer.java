@@ -1,4 +1,4 @@
-package it.cs.contact.tracing.bl;
+package it.cs.contact.tracing.tracing;
 
 import android.bluetooth.BluetoothDevice;
 import android.util.Log;

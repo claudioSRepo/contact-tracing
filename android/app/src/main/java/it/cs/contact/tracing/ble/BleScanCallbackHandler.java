@@ -1,4 +1,4 @@
-package it.cs.contact.tracing.handler;
+package it.cs.contact.tracing.ble;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -11,41 +11,51 @@ import android.util.Log;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
-import it.cs.contact.tracing.bl.BluetoothDeviceTracer;
+import it.cs.contact.tracing.tracing.BluetoothDeviceTracer;
 import it.cs.contact.tracing.model.enums.BlType;
 
 import static it.cs.contact.tracing.config.InternalConfig.BLE_KEY_EXCHANGE_CHARACTERISTIC_UUID;
 import static it.cs.contact.tracing.config.InternalConfig.BLE_KEY_EXCHANGE_SERVICE_UUID;
 
-public class BluetoothLeDiscoveryHandler extends ScanCallback {
+public class BleScanCallbackHandler extends ScanCallback {
 
-    public static final String BL_DISCOVERY_HANDLER = "BluetoothLeDiscoveryHandler";
+    public static final String BL_DISCOVERY_HANDLER = "BleScanCallbackHandler";
 
+    private final Set<String> alreadyFound = new HashSet<>();
 
     @Override
-    public void onBatchScanResults(List<ScanResult> results) {
-        super.onBatchScanResults(results);
+    public void onScanResult(int callbackType, ScanResult scanResult) {
 
-        if (results != null) {
+        if (scanResult != null) {
 
-            new HashSet<>(results).forEach(scanResult -> {
+            final BluetoothDevice device = scanResult.getDevice();
 
-                final BluetoothDevice device = scanResult.getDevice();
+            if (alreadyFound.contains(scanResult.getDevice().getAddress())) {
+                Log.d(BL_DISCOVERY_HANDLER, "BLE Scan ignoring : " + device.getName());
+                return;
+            }
+            alreadyFound.add(scanResult.getDevice().getAddress());
 
-                final String key = getDeviceKey(device);
+            final String key = getDeviceKey(device);
 
-                Log.i(BL_DISCOVERY_HANDLER, "BLE Scan found: " + device.getName() + " - " + key);
+            Log.i(BL_DISCOVERY_HANDLER, "BLE Scan found: " + device.getName() + " - " + key);
 
-                if (key != null) {
-                    BluetoothDeviceTracer.trace(device, key, scanResult.getRssi(), BlType.BLE);
-                } else {
-                    Log.i(BL_DISCOVERY_HANDLER, "Device " + device.getName() + " has no tracing key. Ignored.");
-                    BluetoothDeviceTracer.trace(device, key, scanResult.getRssi(), BlType.BLE);
-                }
-            });
+            if (key != null) {
+                BluetoothDeviceTracer.trace(device, key, scanResult.getRssi(), BlType.BLE);
+            } else {
+                Log.i(BL_DISCOVERY_HANDLER, "Device " + device.getName() + " has no tracing key. Ignored.");
+                BluetoothDeviceTracer.trace(device, key, scanResult.getRssi(), BlType.BLE);
+            }
         }
+
+        super.onScanResult(callbackType, scanResult);
+    }
+
+    public void clear() {
+        alreadyFound.clear();
     }
 
     private String getDeviceKey(final BluetoothDevice device) {
