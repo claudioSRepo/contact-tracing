@@ -5,24 +5,26 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.os.Handler;
 import android.util.Log;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
-import it.cs.contact.tracing.tracing.BluetoothDeviceTracer;
 import it.cs.contact.tracing.model.enums.BlType;
+import it.cs.contact.tracing.tracing.BluetoothDeviceTracer;
+import lombok.AllArgsConstructor;
 
 import static it.cs.contact.tracing.config.InternalConfig.BLE_KEY_EXCHANGE_CHARACTERISTIC_UUID;
 import static it.cs.contact.tracing.config.InternalConfig.BLE_KEY_EXCHANGE_SERVICE_UUID;
 
 public class BleScanCallbackHandler extends ScanCallback {
 
-    public static final String BL_DISCOVERY_HANDLER = "BleScanCallbackHandler";
+    public static final String TAG = "BleScanCallbackHandler";
 
     private final Set<String> alreadyFound = new HashSet<>();
 
@@ -34,21 +36,14 @@ public class BleScanCallbackHandler extends ScanCallback {
             final BluetoothDevice device = scanResult.getDevice();
 
             if (alreadyFound.contains(scanResult.getDevice().getAddress())) {
-                Log.d(BL_DISCOVERY_HANDLER, "BLE Scan ignoring : " + device.getName());
+                Log.d(TAG, "BLE Scan ignoring : " + device.getName());
                 return;
             }
             alreadyFound.add(scanResult.getDevice().getAddress());
 
-            final String key = getDeviceKey(device);
+            Log.i(TAG, "BLE Scan found: " + device.getName() + ". Gatt Connecting...");
 
-            Log.i(BL_DISCOVERY_HANDLER, "BLE Scan found: " + device.getName() + " - " + key);
-
-            if (key != null) {
-                BluetoothDeviceTracer.trace(device, key, scanResult.getRssi(), BlType.BLE);
-            } else {
-                Log.i(BL_DISCOVERY_HANDLER, "Device " + device.getName() + " has no tracing key. Ignored.");
-                BluetoothDeviceTracer.trace(device, key, scanResult.getRssi(), BlType.BLE);
-            }
+            device.connectGatt(CovidTracingAndroidApp.getAppContext(), false, new BleGattClientCallbackHandler(scanResult));
         }
 
         super.onScanResult(callbackType, scanResult);
@@ -58,32 +53,76 @@ public class BleScanCallbackHandler extends ScanCallback {
         alreadyFound.clear();
     }
 
-    private String getDeviceKey(final BluetoothDevice device) {
+    @AllArgsConstructor
+    final static class BleGattClientCallbackHandler extends BluetoothGattCallback {
 
-        final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
-        };
+        private final ScanResult scanResult;
 
-        final BluetoothGatt gattClient = device.connectGatt(CovidTracingAndroidApp.getAppContext(), false, gattCallback);
+        @Override
+        public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
+            super.onConnectionStateChange(gatt, status, newState);
 
-        final BluetoothGattService service = gattClient.getService(BLE_KEY_EXCHANGE_SERVICE_UUID);
+            Log.d(TAG, "Device " + gatt.getDevice().getName() + " state changed. Old status: " + status + ", newState: " + newState);
 
-        if (service != null) {
+            if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
 
-            final BluetoothGattCharacteristic characteristic = service.getCharacteristic(BLE_KEY_EXCHANGE_CHARACTERISTIC_UUID);
+                int bondstate = gatt.getDevice().getBondState();
 
-            if (characteristic != null) {
+                // Take action depending on the bond state
+                if (bondstate == BluetoothDevice.BOND_NONE || bondstate == BluetoothDevice.BOND_BONDED) {
 
-                final String key = characteristic.getStringValue(0);
-                gattClient.disconnect();
-                gattClient.close();
-                return key;
-            } else {
-                Log.d(BL_DISCOVERY_HANDLER, "Device " + device.getName() + " has no tracing characteristic active.");
+                    boolean result = gatt.discoverServices();
+
+                    Log.d(TAG, "Discovery started: " + result);
+
+                } else if (bondstate == BluetoothDevice.BOND_BONDING) {
+                    // Bonding process in progress, let it complete
+                    Log.d(TAG, "waiting for bonding to complete");
+                }
             }
-        } else {
-            Log.d(BL_DISCOVERY_HANDLER, "Device " + device.getName() + " has no tracing service active.");
         }
 
-        return null;
+        @Override
+        public void onServicesDiscovered(final BluetoothGatt gatt, final int status) {
+            super.onServicesDiscovered(gatt, status);
+
+            final BluetoothDevice device = scanResult.getDevice();
+
+            Log.d(TAG, "Device " + device.getName() + " service discovered. Status: " + status);
+
+            try {
+
+                final BluetoothGattService service = gatt.getService(BLE_KEY_EXCHANGE_SERVICE_UUID);
+
+                if (service != null) {
+
+                    final BluetoothGattCharacteristic characteristic = service.getCharacteristic(BLE_KEY_EXCHANGE_CHARACTERISTIC_UUID);
+
+                    if (characteristic != null) {
+
+                        final byte[] charValue = characteristic.getValue();
+
+                        if (charValue != null) {
+
+                            BluetoothDeviceTracer.trace(device, new String(charValue), scanResult.getRssi(), BlType.BLE);
+                        } else {
+                            Log.i(TAG, "Device " + device.getName() + " has no tracing key. Ignored.");
+                        }
+                    } else {
+                        Log.d(TAG, "Device " + device.getName() + " has no tracing characteristic active. Ignored.");
+                    }
+                } else {
+                    Log.d(TAG, "Device " + device.getName() + " has no tracing service active. Ignored.");
+                }
+
+            } catch (final Exception e) {
+
+                Log.e(TAG, "Error while extracting key", e);
+
+            } finally {
+                gatt.disconnect();
+                gatt.close();
+            }
+        }
     }
 }

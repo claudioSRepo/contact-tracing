@@ -36,7 +36,7 @@ public class BlForegroundService extends Service {
         super.onCreate();
 
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "messages").
-                setContentText("this is running in background (v7)").
+                setContentText("this is running in background (v8)").
                 setContentTitle("flutter bck").
                 setOngoing(true).
                 setSmallIcon(android.R.drawable.ic_menu_mylocation);
@@ -93,7 +93,7 @@ public class BlForegroundService extends Service {
         Log.i(TAG, "Starting BL server...");
         final BluetoothManager mBluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
 
-        CovidTracingAndroidApp.getThreadPool().execute(() -> new BleGattServer(mBluetoothManager).start());
+        CovidTracingAndroidApp.getThreadPool().execute(() -> new BleGattServer(mBluetoothManager, this).start());
     }
 
     @Nullable

@@ -2,6 +2,7 @@ package it.cs.contact.tracing.ble;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattServer;
 import android.bluetooth.BluetoothGattServerCallback;
@@ -12,8 +13,11 @@ import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.util.Log;
+
+import java.util.Arrays;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
 import it.cs.contact.tracing.config.InternalConfig;
@@ -27,11 +31,7 @@ public class BleGattServer {
     /* Bluetooth API */
     private final BluetoothManager mBluetoothManager;
 
-    public static BleGattServer of(final BluetoothManager mBluetoothManager) {
-
-        final BleGattServer server = new BleGattServer(mBluetoothManager);
-        return server;
-    }
+    private final Context context;
 
     private final GattServerCallback mGattServerCallback = new GattServerCallback();
 
@@ -87,7 +87,7 @@ public class BleGattServer {
 
         final AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
-                .setConnectable(false)
+                .setConnectable(true)
                 .setTimeout(0)
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_LOW)
                 .build();
@@ -105,7 +105,7 @@ public class BleGattServer {
     private void startServer() {
 
         Log.i(TAG, "Starting gatt server.");
-        final BluetoothGattServer mBluetoothGattServer = mBluetoothManager.openGattServer(CovidTracingAndroidApp.getAppContext(), mGattServerCallback);
+        final BluetoothGattServer mBluetoothGattServer = mBluetoothManager.openGattServer(context, mGattServerCallback);
         mGattServerCallback.setGattServer(mBluetoothGattServer);
 
 
@@ -132,6 +132,7 @@ public class BleGattServer {
      * Callback to receive information about the advertisement process.
      */
     private final AdvertiseCallback mAdvertiseCallback = new AdvertiseCallback() {
+
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
             Log.i(TAG, "LE Advertise Started.");
@@ -153,19 +154,27 @@ public class BleGattServer {
 
         @Override
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
+
+            Log.v(TAG, " Connection state changed [" + status + "->" + newState + "] for device: " + device.getAddress() + " - " + device.getName());
+
             if (newState == BluetoothProfile.STATE_CONNECTED) {
 
-                Log.i(TAG, "BluetoothDevice CONNECTED: " + device);
+                Log.d(TAG, "BluetoothDevice CONNECTED: " + device.getAddress() + " - " + device.getName());
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
 
-                Log.i(TAG, "BluetoothDevice DISCONNECTED: " + device);
+                Log.d(TAG, "BluetoothDevice DISCONNECTED: " + device.getAddress() + " - " + device.getName());
             }
         }
+
 
         @Override
         public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
-            gattServer.sendResponse(device, requestId, 1, offset, characteristic.getValue());
+
+            gattServer.sendResponse(device, requestId,
+                    BluetoothGatt.GATT_SUCCESS, offset, "chiaveProva".getBytes());
+//            gattServer.sendResponse(device, requestId,
+//                    BluetoothGatt.GATT_SUCCESS, offset, characteristic.getValue());
         }
     }
 }
