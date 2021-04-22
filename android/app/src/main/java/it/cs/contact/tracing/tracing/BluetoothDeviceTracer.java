@@ -8,10 +8,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
-import it.cs.contact.tracing.config.ContactTracingDb;
-import it.cs.contact.tracing.dao.DeviceTraceDao;
 import it.cs.contact.tracing.model.entity.DeviceTrace;
 import it.cs.contact.tracing.model.enums.BlType;
 import it.cs.contact.tracing.utils.ConTracUtils;
@@ -26,8 +25,6 @@ public class BluetoothDeviceTracer {
     private static final double R0 = -65;
     private static final double N = 2;
 
-    private final static DeviceTraceDao tracingDao = ContactTracingDb.getInstance(CovidTracingAndroidApp.getAppContext()).deviceTraceDao();
-
     public static void trace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
 
         CovidTracingAndroidApp.getThreadPool().execute(() -> new BluetoothDeviceTracer().runAsyncTrace(rawDevice, deviceKey, rssiSignalStrength, blType));
@@ -36,7 +33,7 @@ public class BluetoothDeviceTracer {
     private void runAsyncTrace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
 
         final String hash = ConTracUtils.secureHash(rawDevice.getAddress());
-        DeviceTrace deviceTrace = tracingDao.findByHash(hash, blType);
+        DeviceTrace deviceTrace = CovidTracingAndroidApp.getDb().deviceTraceDao().findByHash(hash, blType);
 
         final BigDecimal estimatedDistance = getDistance(rssiSignalStrength);
         final BigDecimal exposure = getExposure(estimatedDistance);
@@ -44,7 +41,7 @@ public class BluetoothDeviceTracer {
         if (exposure.compareTo(BigDecimal.valueOf(MIN_EXPOSURE_TRACING)) >= 0) {
             insert(toDeviceEntity(rssiSignalStrength, deviceKey, rawDevice, blType, hash, estimatedDistance, exposure));
 //            if (deviceTrace != null) {
-//TODO: aggiungere update
+//
 //                update(prepareUpdate(deviceTrace, rssiSignalStrength, estimatedDistance, exposure));
 //
 //            } else {
@@ -59,6 +56,7 @@ public class BluetoothDeviceTracer {
         deviceTrace.setSignalStrengthSum(deviceTrace.getSignalStrengthSum() + rssiSignalStrength);
         deviceTrace.setExposure(deviceTrace.getExposure().add(exposure));
         deviceTrace.setUpdateVersion(deviceTrace.getUpdateVersion() + 1);
+        deviceTrace.setTimestamp(ZonedDateTime.now());
 
         return deviceTrace;
     }
@@ -78,6 +76,7 @@ public class BluetoothDeviceTracer {
                 .mac(macAddress)
                 .exposure(exposure)
                 .from(blType)
+                .timestamp(ZonedDateTime.now())
                 .date(LocalDate.now()).build();
     }
 
@@ -87,7 +86,7 @@ public class BluetoothDeviceTracer {
         Log.i(TAG, "New device trace saving for device: " + device.getName());
 
         try {
-            tracingDao.insert(device);
+            CovidTracingAndroidApp.getDb().deviceTraceDao().insert(device);
 
         } catch (final Exception e) {
             Log.e(TAG, "Error saving data for device" + device.getName(), e);
@@ -101,7 +100,7 @@ public class BluetoothDeviceTracer {
         Log.i(TAG, "Update device trace for device: " + device.getName());
 
         try {
-            tracingDao.update(device);
+            CovidTracingAndroidApp.getDb().deviceTraceDao().update(device);
 
         } catch (final Exception e) {
             Log.e(TAG, "Error updating data for device" + device.getName(), e);

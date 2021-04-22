@@ -8,7 +8,6 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
-import android.os.Handler;
 import android.util.Log;
 
 import java.util.HashSet;
@@ -87,6 +86,7 @@ public class BleScanCallbackHandler extends ScanCallback {
             super.onServicesDiscovered(gatt, status);
 
             final BluetoothDevice device = scanResult.getDevice();
+            boolean disconnect = true;
 
             Log.d(TAG, "Device " + device.getName() + " service discovered. Status: " + status);
 
@@ -100,14 +100,10 @@ public class BleScanCallbackHandler extends ScanCallback {
 
                     if (characteristic != null) {
 
-                        final byte[] charValue = characteristic.getValue();
+                        Log.d(TAG, "Device " + device.getName() + " - reading characteristic...");
+                        gatt.readCharacteristic(characteristic);
+                        disconnect = false;
 
-                        if (charValue != null) {
-
-                            BluetoothDeviceTracer.trace(device, new String(charValue), scanResult.getRssi(), BlType.BLE);
-                        } else {
-                            Log.i(TAG, "Device " + device.getName() + " has no tracing key. Ignored.");
-                        }
                     } else {
                         Log.d(TAG, "Device " + device.getName() + " has no tracing characteristic active. Ignored.");
                     }
@@ -118,11 +114,43 @@ public class BleScanCallbackHandler extends ScanCallback {
             } catch (final Exception e) {
 
                 Log.e(TAG, "Error while extracting key", e);
-
             } finally {
-                gatt.disconnect();
-                gatt.close();
+
+                if (disconnect) {
+                    disconnect(gatt);
+                }
             }
         }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicRead(gatt, characteristic, status);
+
+            try {
+                final String characteristicValue = characteristic.getValue() != null ? new String(characteristic.getValue()) : null;
+
+                if (characteristicValue != null) {
+
+                    Log.i(TAG, "Device " + gatt.getDevice().getName() + " tracing key: " + characteristicValue);
+
+                    BluetoothDeviceTracer.trace(gatt.getDevice(), characteristicValue, scanResult.getRssi(), BlType.BLE);
+                } else {
+                    Log.i(TAG, "Device " + gatt.getDevice().getName() + " has no tracing key. Ignored.");
+                }
+
+            } catch (final Exception e) {
+
+                Log.e(TAG, "Error while extracting key", e);
+            } finally {
+                disconnect(gatt);
+            }
+        }
+
+        private void disconnect(final BluetoothGatt gatt) {
+
+            gatt.disconnect();
+            gatt.close();
+        }
+
     }
 }

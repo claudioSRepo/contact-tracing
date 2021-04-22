@@ -2,7 +2,6 @@ package it.cs.contact.tracing.config;
 
 import android.content.Context;
 
-import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
@@ -10,22 +9,26 @@ import androidx.room.TypeConverters;
 import it.cs.contact.tracing.config.converters.BlTypeConverter;
 import it.cs.contact.tracing.config.converters.DateConverter;
 import it.cs.contact.tracing.config.converters.NumberConverter;
+import it.cs.contact.tracing.dao.ConfigDao;
 import it.cs.contact.tracing.dao.DeviceTraceDao;
+import it.cs.contact.tracing.model.entity.Config;
 import it.cs.contact.tracing.model.entity.DeviceTrace;
 
-@Database(entities = {DeviceTrace.class}, version = 4, exportSchema = false)
+@androidx.room.Database(entities = {DeviceTrace.class, Config.class}, version = 5, exportSchema = false)
 @TypeConverters({DateConverter.class, NumberConverter.class, BlTypeConverter.class})
-public abstract class ContactTracingDb extends RoomDatabase {
+public abstract class Database extends RoomDatabase {
 
-    private static ContactTracingDb dbInstance = null;
+    private static Database dbInstance = null;
 
     public abstract DeviceTraceDao deviceTraceDao();
 
-    public static ContactTracingDb getInstance(final Context context) {
+    public abstract ConfigDao configDao();
+
+    public static synchronized Database getInstance(final Context context) {
 
         if (dbInstance == null) {
             dbInstance = Room.databaseBuilder(context,
-                    ContactTracingDb.class, "contact-tracing-db").fallbackToDestructiveMigration().allowMainThreadQueries().build();
+                    Database.class, "contact-tracing-db").fallbackToDestructiveMigration().allowMainThreadQueries().build();
         }
         return dbInstance;
     }

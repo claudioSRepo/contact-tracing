@@ -10,6 +10,8 @@ public interface InternalConfig {
 
     long BLE_SCAN_PERIOD = BL_CHECKER_SCHEDULING_SEC / 4;
 
+    long BLE_RESTART_SERVER = 3600000 / 4;
+
 //    Map<Range<Integer>, Risk.RiskZone> RISK_ZONE_MAP = Collections.unmodifiableMap(Stream.of(
 //            entry(Range.between(0, 5), Risk.RiskZone.LOW),
 //            entry(Range.between(6, 100), Risk.RiskZone.MEDIUM),
@@ -18,6 +20,8 @@ public interface InternalConfig {
     short DEFAULT_MIN_RSSI = -100;
 
     short MIN_EXPOSURE_TRACING = 1;
+
+    UUID BLE_ADVERTISE_TRACING_ACTIVE = UUID.fromString("fb290d48-77a2-4324-ba16-d337e1d7c2b8");
 
     UUID BLE_KEY_EXCHANGE_SERVICE_UUID = UUID.fromString("6bfc1913-25b1-469f-8de4-a94e3cbef3cd");
 

@@ -22,7 +22,7 @@
         <receiver android:name="it.cs.contact.tracing.ble.BluetoothDiscoveryHandler" />
 
         <service
-            android:name="it.cs.contact.tracing.service.BlForegroundService"
+            android:name="it.cs.contact.tracing.foreground.BlForegroundService"
             android:enabled="true"
             android:exported="true" />
 

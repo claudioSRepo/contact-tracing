@@ -12,7 +12,7 @@ import androidx.core.app.ActivityCompat;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugins.GeneratedPluginRegistrant;
-import it.cs.contact.tracing.service.BlForegroundService;
+import it.cs.contact.tracing.foreground.BlForegroundService;
 
 public class MainActivity extends FlutterActivity {
 
@@ -40,7 +40,7 @@ public class MainActivity extends FlutterActivity {
         Log.i(TAG, "Starting foreground service");
 
         final Intent forService = new Intent(MainActivity.this, BlForegroundService.class);
-        forService.setAction(BlForegroundService.ACTION_START);
+        forService.setAction(BlForegroundService.ACTION_INIT);
         startForegroundService(forService);
     }
 }

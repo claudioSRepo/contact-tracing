@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 
 import it.cs.contact.tracing.model.enums.BlType;
 import lombok.AllArgsConstructor;
@@ -47,6 +48,9 @@ public class DeviceTrace {
 
     @ColumnInfo(name = "ref_date")
     private LocalDate date;
+
+    @ColumnInfo(name = "timestamp")
+    private ZonedDateTime timestamp;
 
     @ColumnInfo(name = "trace_from")
     private BlType from;

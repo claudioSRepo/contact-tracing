@@ -15,45 +15,74 @@ import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.ParcelUuid;
 import android.util.Log;
 
-import java.util.Arrays;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.UUID;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
 import it.cs.contact.tracing.config.InternalConfig;
-import lombok.AllArgsConstructor;
+import it.cs.contact.tracing.dao.ConfigDao;
+import it.cs.contact.tracing.model.entity.Config;
+import lombok.SneakyThrows;
 
-@AllArgsConstructor
 public class BleGattServer {
 
     private static final String TAG = "BleGattServer";
 
-    /* Bluetooth API */
+    private static final String TRACING_KEY_PARAM = "TRACING_KEY";
+
+    private static BleGattServer bleGattServer;
+
     private final BluetoothManager mBluetoothManager;
 
     private final Context context;
 
     private final GattServerCallback mGattServerCallback = new GattServerCallback();
 
+    private String tracingKey;
+
+    private BleGattServer(final BluetoothManager mBluetoothManager, final Context context) {
+        this.mBluetoothManager = mBluetoothManager;
+        this.context = context;
+    }
+
+    public static synchronized BleGattServer instanceOf(final BluetoothManager mBluetoothManager, final Context context) {
+
+        if (bleGattServer == null) {
+            bleGattServer = new BleGattServer(mBluetoothManager, context);
+        }
+
+        return bleGattServer;
+    }
+
     public void start() {
 
-        Log.i(TAG, "onCreate");
+        Log.i(TAG, "start()");
+
+        Log.i(TAG, "Shutdown old instances...");
+        mGattServerCallback.shutdown();
+
+        initTracingKey();
 
         final BluetoothAdapter bluetoothAdapter = mBluetoothManager.getAdapter();
 
         // We can't continue without proper Bluetooth support
         if (checkBluetoothSupport(bluetoothAdapter)) {
+
             if (!bluetoothAdapter.isEnabled()) {
                 Log.i(TAG, "Bluetooth is currently disabled.");
             } else {
 
                 Log.i(TAG, "Bluetooth enabled...starting services");
+
                 startServer();
                 startAdvertising();
             }
         }
     }
-
 
     private boolean checkBluetoothSupport(BluetoothAdapter bluetoothAdapter) {
 
@@ -93,7 +122,8 @@ public class BleGattServer {
                 .build();
 
         final AdvertiseData data = new AdvertiseData.Builder()
-                .setIncludeDeviceName(true)
+                .addServiceUuid(new ParcelUuid(InternalConfig.BLE_ADVERTISE_TRACING_ACTIVE))
+                .setIncludeDeviceName(false)
                 .setIncludeTxPowerLevel(false)
                 .build();
 
@@ -106,8 +136,8 @@ public class BleGattServer {
 
         Log.i(TAG, "Starting gatt server.");
         final BluetoothGattServer mBluetoothGattServer = mBluetoothManager.openGattServer(context, mGattServerCallback);
-        mGattServerCallback.setGattServer(mBluetoothGattServer);
 
+        mGattServerCallback.setGattServer(mBluetoothGattServer);
 
         if (mBluetoothGattServer == null) {
             Log.e(TAG, "Unable to create GATT server");
@@ -118,14 +148,33 @@ public class BleGattServer {
                 BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
 
-        final BluetoothGattCharacteristic currentTime = new BluetoothGattCharacteristic(InternalConfig.BLE_KEY_EXCHANGE_CHARACTERISTIC_UUID,
+        final BluetoothGattCharacteristic keyGattCharacteristic = new BluetoothGattCharacteristic(InternalConfig.BLE_KEY_EXCHANGE_CHARACTERISTIC_UUID,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ);
-        currentTime.setValue("prova1234");
+        keyGattCharacteristic.setValue(tracingKey);
 
-        service.addCharacteristic(currentTime);
+        service.addCharacteristic(keyGattCharacteristic);
 
         mBluetoothGattServer.addService(service);
+    }
+
+    private void initTracingKey() {
+
+        if (tracingKey == null) {
+
+            final ConfigDao dao = CovidTracingAndroidApp.getDb().configDao();
+
+            Config configEntity = dao.getConfigValue(TRACING_KEY_PARAM);
+
+            if (configEntity == null) {
+
+                configEntity = Config.builder().key(TRACING_KEY_PARAM).value(UUID.randomUUID().toString()).build();
+
+                dao.insert(configEntity);
+            }
+
+            tracingKey = configEntity.getValue();
+        }
     }
 
     /**
@@ -140,7 +189,7 @@ public class BleGattServer {
 
         @Override
         public void onStartFailure(int errorCode) {
-            Log.w(TAG, "LE Advertise Failed: " + errorCode);
+            Log.i(TAG, "LE Advertise Failed: " + errorCode);
         }
     };
 
@@ -159,22 +208,38 @@ public class BleGattServer {
 
             if (newState == BluetoothProfile.STATE_CONNECTED) {
 
-                Log.d(TAG, "BluetoothDevice CONNECTED: " + device.getAddress() + " - " + device.getName());
+                Log.v(TAG, "BluetoothDevice CONNECTED: " + device.getAddress() + " - " + device.getName());
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
 
-                Log.d(TAG, "BluetoothDevice DISCONNECTED: " + device.getAddress() + " - " + device.getName());
+                Log.v(TAG, "BluetoothDevice DISCONNECTED: " + device.getAddress() + " - " + device.getName());
             }
         }
-
 
         @Override
         public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
 
+            Log.v(TAG, "Read Characteristic for device " + device.getAddress());
+            Log.v(TAG, "Offset " + offset);
+            Log.v(TAG, "Read Characteristic " + (characteristic.getValue() != null ? new String(characteristic.getValue()) : null));
+            Log.v(TAG, "Read Characteristic " + characteristic.getStringValue(offset));
+
+            final String fromOffset = StringUtils.trimToEmpty(characteristic.getStringValue(offset));
+
             gattServer.sendResponse(device, requestId,
-                    BluetoothGatt.GATT_SUCCESS, offset, "chiaveProva".getBytes());
-//            gattServer.sendResponse(device, requestId,
-//                    BluetoothGatt.GATT_SUCCESS, offset, characteristic.getValue());
+                    BluetoothGatt.GATT_SUCCESS, offset, fromOffset.getBytes());
+        }
+
+        public void shutdown() {
+
+            try {
+                Log.v(TAG, "Shutting down...");
+                gattServer.close();
+                Log.v(TAG, "Waiting 5 seconds...");
+                Thread.sleep(5000L);
+
+            } catch (final Exception ignored) {
+            }
         }
     }
 }

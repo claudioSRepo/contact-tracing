@@ -7,6 +7,7 @@ import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.util.Log;
 
 import java.util.Collections;
@@ -35,7 +36,7 @@ public class BleScanner {
 
     private void startBleScan(final BluetoothAdapter blAdapter, final Context context) {
 
-        Log.i(TAG, "Started BLE Adapter");
+        Log.i(TAG, "BLE scanner started.");
 
         final BluetoothLeScanner bluetoothLeScanner = blAdapter.getBluetoothLeScanner();
 
@@ -45,16 +46,15 @@ public class BleScanner {
 
             stopIfExists(bluetoothLeScanner);
 
-            final ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).setMatchMode(ScanSettings.MATCH_MODE_STICKY).build();
+            final ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).setMatchMode(ScanSettings.MATCH_MODE_STICKY).build();
 
             handler.postDelayed(() -> bluetoothLeScanner.stopScan(scanCallback), InternalConfig.BLE_SCAN_PERIOD);
 
             Log.i(TAG, "BLE available, starting scanner...");
-            //ServiceUuid(new ParcelUuid(InternalConfig.BLE_KEY_EXCHANGE_SERVICE_UUID)
-            final List<ScanFilter> filters = Collections.singletonList(new ScanFilter.Builder().setDeviceName("OnePlus 8 Pro").build());
+
+            final List<ScanFilter> filters = Collections.singletonList(new ScanFilter.Builder().setServiceUuid(new ParcelUuid(InternalConfig.BLE_ADVERTISE_TRACING_ACTIVE)).build());
 
             bluetoothLeScanner.startScan(filters, settings, scanCallback);
-
 
         } else {
             Log.i(TAG, "BLE not available");
