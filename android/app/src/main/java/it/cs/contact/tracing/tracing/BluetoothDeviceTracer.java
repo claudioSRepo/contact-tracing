@@ -11,35 +11,42 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
+import it.cs.contact.tracing.audio.DecibelMeter;
+import it.cs.contact.tracing.config.InternalConfig;
 import it.cs.contact.tracing.model.entity.DeviceTrace;
 import it.cs.contact.tracing.model.enums.BlType;
 import it.cs.contact.tracing.utils.ConTracUtils;
+import it.cs.contact.tracing.wifi.WifiUtils;
 
-import static it.cs.contact.tracing.config.InternalConfig.BL_CHECKER_SCHEDULING_SEC;
+import static it.cs.contact.tracing.config.InternalConfig.BL_SCAN_SCHEDULING_OFFSET;
+import static it.cs.contact.tracing.config.InternalConfig.MIDDLE_RSSI;
 import static it.cs.contact.tracing.config.InternalConfig.MIN_EXPOSURE_TRACING;
 
 public class BluetoothDeviceTracer {
 
     public static final String TAG = "BluetoothDeviceTracer";
 
-    private static final double R0 = -65;
     private static final double N = 2;
 
     public static void trace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
 
         CovidTracingAndroidApp.getThreadPool().execute(() -> new BluetoothDeviceTracer().runAsyncTrace(rawDevice, deviceKey, rssiSignalStrength, blType));
+        ConTracUtils.wait(1);
     }
 
     private void runAsyncTrace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
 
-        final String hash = ConTracUtils.secureHash(rawDevice.getAddress());
-        DeviceTrace deviceTrace = CovidTracingAndroidApp.getDb().deviceTraceDao().findByHash(hash, blType);
+
+        DeviceTrace deviceTrace = CovidTracingAndroidApp.getDb().deviceTraceDao().findByKey(deviceKey, blType);
 
         final BigDecimal estimatedDistance = getDistance(rssiSignalStrength);
-        final BigDecimal exposure = getExposure(estimatedDistance);
+        final boolean indoor = WifiUtils.isDeviceConnectedToWifi();
+        final DecibelMeter.Noise noise = new DecibelMeter().recordAndgetNoiseValue();
+        final BigDecimal exposure = getExposure(estimatedDistance, indoor, noise);
 
         if (exposure.compareTo(BigDecimal.valueOf(MIN_EXPOSURE_TRACING)) >= 0) {
-            insert(toDeviceEntity(rssiSignalStrength, deviceKey, rawDevice, blType, hash, estimatedDistance, exposure));
+
+            insert(toDeviceEntity(rssiSignalStrength, deviceKey, rawDevice, blType, estimatedDistance, exposure, indoor, noise));
 //            if (deviceTrace != null) {
 //
 //                update(prepareUpdate(deviceTrace, rssiSignalStrength, estimatedDistance, exposure));
@@ -61,21 +68,20 @@ public class BluetoothDeviceTracer {
         return deviceTrace;
     }
 
-    private DeviceTrace toDeviceEntity(final int rssi, final String deviceKey, final BluetoothDevice deviceObj, final BlType blType, final String hash,
-                                       final BigDecimal estimatedDistance, final BigDecimal exposure) {
+    private DeviceTrace toDeviceEntity(final int rssi, final String deviceKey, final BluetoothDevice deviceObj, final BlType blType,
+                                       final BigDecimal estimatedDistance, final BigDecimal exposure, final boolean wifi, final DecibelMeter.Noise noise) {
 
         final String macAddress = deviceObj.getAddress();
 
         return DeviceTrace.builder()
-                .name(StringUtils.trimToEmpty(deviceObj.getName()))
-                .hash(hash)
                 .deviceKey(deviceKey)
                 .signalStrengthSum(rssi)
                 .distanceSum(estimatedDistance)
                 .updateVersion(1)
-                .mac(macAddress)
                 .exposure(exposure)
                 .from(blType)
+                .noise(noise)
+                .wifiConnected(wifi)
                 .timestamp(ZonedDateTime.now())
                 .date(LocalDate.now()).build();
     }
@@ -83,13 +89,13 @@ public class BluetoothDeviceTracer {
 
     private void insert(final DeviceTrace device) {
 
-        Log.i(TAG, "New device trace saving for device: " + device.getName());
+        Log.i(TAG, "New device trace saving for device: " + device.getDeviceKey());
 
         try {
             CovidTracingAndroidApp.getDb().deviceTraceDao().insert(device);
 
         } catch (final Exception e) {
-            Log.e(TAG, "Error saving data for device" + device.getName(), e);
+            Log.e(TAG, "Error saving data for device" + device.getDeviceKey(), e);
         }
 
         Log.i(TAG, "Device trace added.");
@@ -97,13 +103,13 @@ public class BluetoothDeviceTracer {
 
     private void update(final DeviceTrace device) {
 
-        Log.i(TAG, "Update device trace for device: " + device.getName());
+        Log.i(TAG, "Update device trace for device: " + device.getDeviceKey());
 
         try {
             CovidTracingAndroidApp.getDb().deviceTraceDao().update(device);
 
         } catch (final Exception e) {
-            Log.e(TAG, "Error updating data for device" + device.getName(), e);
+            Log.e(TAG, "Error updating data for device" + device.getDeviceKey(), e);
         }
 
         Log.i(TAG, "Device trace updated.");
@@ -111,14 +117,18 @@ public class BluetoothDeviceTracer {
 
     private BigDecimal getDistance(final int rssi) {
 
-        return BigDecimal.valueOf(Math.pow(10, (R0 - rssi) / (N * 10)));
+        return BigDecimal.valueOf(Math.pow(10, (MIDDLE_RSSI - rssi) / (N * 10)));
     }
 
-    private BigDecimal getExposure(final BigDecimal distance) {
+    private BigDecimal getExposure(final BigDecimal distance, final boolean deviceConnectedToWifi, final DecibelMeter.Noise noise) {
 
-        return BigDecimal.valueOf(BL_CHECKER_SCHEDULING_SEC).
+        final BigDecimal indoorMultiplier = deviceConnectedToWifi ? new BigDecimal("4") : BigDecimal.ONE;
+        final BigDecimal noiseMultiplier = InternalConfig.NOISE_MULTIPLIER_MAP.get(noise);
+        final BigDecimal adjustedDistance = distance.max(InternalConfig.MIN_DISTANCE);
+
+        return BigDecimal.valueOf(BL_SCAN_SCHEDULING_OFFSET).
                 divide(new BigDecimal("6000"), 1, RoundingMode.HALF_UP).
-                divide(distance, 1, RoundingMode.HALF_UP).
-                multiply(BigDecimal.ONE);
+                divide(adjustedDistance, 1, RoundingMode.HALF_UP).
+                multiply(indoorMultiplier).multiply(noiseMultiplier);
     }
 }

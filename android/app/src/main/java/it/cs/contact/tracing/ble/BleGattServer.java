@@ -21,14 +21,15 @@ import android.util.Log;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
 import it.cs.contact.tracing.config.InternalConfig;
 import it.cs.contact.tracing.dao.ConfigDao;
 import it.cs.contact.tracing.model.entity.Config;
-import lombok.SneakyThrows;
+import it.cs.contact.tracing.utils.ConTracUtils;
 
-public class BleGattServer {
+public class BleGattServer implements Runnable {
 
     private static final String TAG = "BleGattServer";
 
@@ -44,6 +45,9 @@ public class BleGattServer {
 
     private String tracingKey;
 
+    private AtomicBoolean runnning = new AtomicBoolean(false);
+
+
     private BleGattServer(final BluetoothManager mBluetoothManager, final Context context) {
         this.mBluetoothManager = mBluetoothManager;
         this.context = context;
@@ -58,7 +62,22 @@ public class BleGattServer {
         return bleGattServer;
     }
 
-    public void start() {
+    @Override
+    public void run() {
+
+        try {
+            if (!runnning.get()) {
+                runnning.set(true);
+                start();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting server...", e);
+        } finally {
+            runnning.set(false);
+        }
+    }
+
+    private void start() {
 
         Log.i(TAG, "start()");
 
@@ -168,7 +187,8 @@ public class BleGattServer {
 
             if (configEntity == null) {
 
-                configEntity = Config.builder().key(TRACING_KEY_PARAM).value(UUID.randomUUID().toString()).build();
+                configEntity = Config.builder().key(TRACING_KEY_PARAM).value(
+                        ConTracUtils.secureHash(UUID.randomUUID().toString())).build();
 
                 dao.insert(configEntity);
             }
@@ -236,7 +256,7 @@ public class BleGattServer {
                 Log.v(TAG, "Shutting down...");
                 gattServer.close();
                 Log.v(TAG, "Waiting 5 seconds...");
-                Thread.sleep(5000L);
+                ConTracUtils.wait(5);
 
             } catch (final Exception ignored) {
             }

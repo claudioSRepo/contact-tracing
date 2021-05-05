@@ -13,11 +13,11 @@ import it.cs.contact.tracing.config.Database;
 
 public class CovidTracingAndroidApp extends FlutterApplication {
 
-    private static Context context;
+    private static volatile Context context;
 
     private static ExecutorService pool;
 
-    private static Database db;
+    private static volatile Database db;
 
     @Override
     public void onCreate() {

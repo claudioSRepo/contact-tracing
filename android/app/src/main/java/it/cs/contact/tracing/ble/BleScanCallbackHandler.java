@@ -35,7 +35,7 @@ public class BleScanCallbackHandler extends ScanCallback {
             final BluetoothDevice device = scanResult.getDevice();
 
             if (alreadyFound.contains(scanResult.getDevice().getAddress())) {
-                Log.d(TAG, "BLE Scan ignoring : " + device.getName());
+                Log.d(TAG, "BLE Scan ignoring : " + device.getAddress());
                 return;
             }
             alreadyFound.add(scanResult.getDevice().getAddress());

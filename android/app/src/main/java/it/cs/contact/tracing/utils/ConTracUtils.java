@@ -31,4 +31,18 @@ public class ConTracUtils {
 
         return gen;
     }
+
+    public static void wait(final int seconds) {
+
+        wait((double) seconds);
+    }
+
+    public static void wait(final double seconds) {
+
+        try {
+            Thread.sleep((long) (seconds * 1000));
+        } catch (Exception ignored) {
+        }
+    }
+
 }

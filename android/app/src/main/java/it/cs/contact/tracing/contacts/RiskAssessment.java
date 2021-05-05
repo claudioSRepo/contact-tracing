@@ -1,4 +1,4 @@
-package it.cs.contact.tracing.risk;
+package it.cs.contact.tracing.contacts;
 
 
 import lombok.AllArgsConstructor;

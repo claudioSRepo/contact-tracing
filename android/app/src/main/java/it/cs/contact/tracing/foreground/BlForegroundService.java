@@ -15,10 +15,16 @@ import androidx.core.app.NotificationCompat;
 
 import java.util.Objects;
 
+import it.cs.contact.tracing.CovidTracingAndroidApp;
 import it.cs.contact.tracing.ble.BleGattServer;
 import it.cs.contact.tracing.ble.BleScanner;
 import it.cs.contact.tracing.config.InternalConfig;
+import it.cs.contact.tracing.contacts.ExposureAssessmentManager;
 import lombok.NoArgsConstructor;
+
+import static it.cs.contact.tracing.config.InternalConfig.BL_FIRST_SCAN;
+import static it.cs.contact.tracing.config.InternalConfig.BL_SCAN_SCHEDULING_OFFSET;
+import static it.cs.contact.tracing.config.InternalConfig.EXPOSURE_ASSESSMENT_SCHEDULING;
 
 @NoArgsConstructor
 public class BlForegroundService extends Service {
@@ -28,6 +34,8 @@ public class BlForegroundService extends Service {
     public static final String ACTION_INIT = "START_INIT";
 
     public static final String ACTION_START_SERVER = "START_SERVER";
+
+    public static final String ACTION_DAILY_EXPOSURE_ASSESSMENT = "DAILY_EXPOSURE_ASSESSMENT";
 
     public static final String ACTION_EXECUTE_FOREGROUND_SCAN = "EXECUTE_FOREGROUND_SCAN";
 
@@ -55,8 +63,9 @@ public class BlForegroundService extends Service {
         switch (Objects.requireNonNull(action)) {
 
             case ACTION_INIT:
-                startBlClientJob();
+                startBlClientNextFire(BL_FIRST_SCAN);
                 startBlServerJob();
+                scheduleDailyExposureAssessmentJob();
                 break;
 
             case ACTION_START_SERVER:
@@ -64,15 +73,20 @@ public class BlForegroundService extends Service {
                 break;
 
             case ACTION_EXECUTE_FOREGROUND_SCAN:
+                startBlClientNextFire(BL_SCAN_SCHEDULING_OFFSET);
                 startScan();
+                break;
+
+            case ACTION_DAILY_EXPOSURE_ASSESSMENT:
+                CovidTracingAndroidApp.getThreadPool().execute(new ExposureAssessmentManager());
                 break;
         }
         return super.onStartCommand(intent, flags, startId);
     }
 
-    private void startBlClientJob() {
+    private void startBlClientNextFire(final long triggerAt) {
 
-        Log.i(TAG, "Starting BL client job...");
+        Log.i(TAG, "startBlClientNextFire at " + (triggerAt / 1000) + " seconds");
 
         final Intent forService = new Intent(this, BlForegroundService.class);
         forService.setAction(ACTION_EXECUTE_FOREGROUND_SCAN);
@@ -81,9 +95,8 @@ public class BlForegroundService extends Service {
         final AlarmManager alarmManager =
                 (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
 
-        alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                SystemClock.elapsedRealtime() + 1500,
-                InternalConfig.BL_CHECKER_SCHEDULING_SEC, pendingIntent);
+        Log.i(TAG, "Starting BL client job...");
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + triggerAt, pendingIntent);
     }
 
     private void startBlServerJob() {
@@ -103,6 +116,23 @@ public class BlForegroundService extends Service {
                 InternalConfig.BLE_RESTART_SERVER, pendingIntent);
     }
 
+    private void scheduleDailyExposureAssessmentJob() {
+
+        Log.i(TAG, "Scheduling daily exposure assessment...");
+
+        final Intent forService = new Intent(this, BlForegroundService.class);
+        forService.setAction(ACTION_DAILY_EXPOSURE_ASSESSMENT);
+
+        final PendingIntent pendingIntent = PendingIntent.getForegroundService(this, 0, forService, 0);
+
+        final AlarmManager alarmManager =
+                (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+
+        alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + 500, //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
+                InternalConfig.BLE_RESTART_SERVER, pendingIntent); //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
+    }
+
 
     private void startScan() {
         new BleScanner().scan(this);
@@ -113,7 +143,7 @@ public class BlForegroundService extends Service {
         Log.i(TAG, "Restarting BL server...");
         final BluetoothManager mBluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
 
-        BleGattServer.instanceOf(mBluetoothManager, this).start();
+        CovidTracingAndroidApp.getThreadPool().execute(BleGattServer.instanceOf(mBluetoothManager, this));
     }
 
     @Nullable
