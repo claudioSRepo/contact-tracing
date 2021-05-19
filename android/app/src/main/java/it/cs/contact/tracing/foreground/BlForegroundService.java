@@ -24,7 +24,6 @@ import lombok.NoArgsConstructor;
 
 import static it.cs.contact.tracing.config.InternalConfig.BL_FIRST_SCAN;
 import static it.cs.contact.tracing.config.InternalConfig.BL_SCAN_SCHEDULING_OFFSET;
-import static it.cs.contact.tracing.config.InternalConfig.EXPOSURE_ASSESSMENT_SCHEDULING;
 
 @NoArgsConstructor
 public class BlForegroundService extends Service {
@@ -36,6 +35,8 @@ public class BlForegroundService extends Service {
     public static final String ACTION_START_SERVER = "START_SERVER";
 
     public static final String ACTION_DAILY_EXPOSURE_ASSESSMENT = "DAILY_EXPOSURE_ASSESSMENT";
+
+    public static final String ACTION_DAILY_SWAB_ASSESSMENT = "DAILY_SWAB_ASSESSMENT";
 
     public static final String ACTION_EXECUTE_FOREGROUND_SCAN = "EXECUTE_FOREGROUND_SCAN";
 
@@ -78,6 +79,10 @@ public class BlForegroundService extends Service {
                 break;
 
             case ACTION_DAILY_EXPOSURE_ASSESSMENT:
+                CovidTracingAndroidApp.getThreadPool().execute(new ExposureAssessmentManager());
+                break;
+                
+            case ACTION_DAILY_SWAB_ASSESSMENT:
                 CovidTracingAndroidApp.getThreadPool().execute(new ExposureAssessmentManager());
                 break;
         }
@@ -133,6 +138,22 @@ public class BlForegroundService extends Service {
                 InternalConfig.BLE_RESTART_SERVER, pendingIntent); //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
     }
 
+    private void scheduleDailySwabAssessmentJob() {
+
+        Log.i(TAG, "Scheduling daily exposure assessment...");
+
+        final Intent forService = new Intent(this, BlForegroundService.class);
+        forService.setAction(ACTION_DAILY_SWAB_ASSESSMENT);
+
+        final PendingIntent pendingIntent = PendingIntent.getForegroundService(this, 0, forService, 0);
+
+        final AlarmManager alarmManager =
+                (AlarmManager) getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+
+        alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + 500, //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
+                InternalConfig.BLE_RESTART_SERVER, pendingIntent); //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
+    }
 
     private void startScan() {
         new BleScanner().scan(this);

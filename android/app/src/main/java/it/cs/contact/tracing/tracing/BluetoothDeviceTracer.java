@@ -3,8 +3,6 @@ package it.cs.contact.tracing.tracing;
 import android.bluetooth.BluetoothDevice;
 import android.util.Log;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;

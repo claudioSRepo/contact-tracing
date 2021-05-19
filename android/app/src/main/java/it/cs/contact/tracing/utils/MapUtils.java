@@ -7,8 +7,6 @@ import java.util.TreeMap;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import it.cs.contact.tracing.audio.DecibelMeter;
-
 /**
  * Map Utils
  *
@@ -28,7 +26,7 @@ public class MapUtils {
         return Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue);
     }
 
-    public static NavigableMap<Integer, DecibelMeter.Noise> toNavigableMap(final Map<Integer, DecibelMeter.Noise> collect) {
-        return new TreeMap<>(collect);
+    public static <K, V> NavigableMap<K, V> toNavigableMap(final Map<K, V> collect) {
+        return new TreeMap<K, V>(collect);
     }
 }

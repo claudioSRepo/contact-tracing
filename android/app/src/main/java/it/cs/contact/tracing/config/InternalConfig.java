@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import it.cs.contact.tracing.audio.DecibelMeter;
+import it.cs.contact.tracing.model.enums.RiskZone;
 import it.cs.contact.tracing.utils.MapUtils;
 
 import static it.cs.contact.tracing.utils.MapUtils.entriesToMap;
@@ -23,10 +24,11 @@ public interface InternalConfig {
     long BLE_RESTART_SERVER = 3600000 / 4;
     long EXPOSURE_ASSESSMENT_SCHEDULING = AlarmManager.INTERVAL_HOUR;
 
-//    Map<Range<Integer>, Risk.RiskZone> RISK_ZONE_MAP = Collections.unmodifiableMap(Stream.of(
-//            entry(Range.between(0, 5), Risk.RiskZone.LOW),
-//            entry(Range.between(6, 100), Risk.RiskZone.MEDIUM),
-//            entry(Range.between(101, Integer.MAX_VALUE), Risk.RiskZone.HIGH)).collect(entriesToMap()));
+    //Risk Eval
+    NavigableMap<Integer, RiskZone> RISK_ZONE_MAP = MapUtils.toNavigableMap(Stream.of(
+            entry(0, RiskZone.LOW),
+            entry(100, RiskZone.MEDIUM),
+            entry(1000, RiskZone.HIGH)).collect(entriesToMap()));
 
     //Distance calc
     double MIDDLE_RSSI = -65;
@@ -40,6 +42,7 @@ public interface InternalConfig {
     //Tracing
     short TRACING_DAYS_LENGTH = 14;
     short MIN_EXPOSURE_TRACING = 0;
+    BigDecimal SECOND_LEVEL_CONTACT_FACTOR = new BigDecimal("0.25");
 
     Map<Integer, BigDecimal> DISTRIBUTION_WEIGHT_MAP = Stream.of(
             entry(0, BigDecimal.valueOf(1)),
@@ -75,4 +78,18 @@ public interface InternalConfig {
             entry(DecibelMeter.Noise.LOW, BigDecimal.ONE),
             entry(DecibelMeter.Noise.MEDIUM, new BigDecimal("2")),
             entry(DecibelMeter.Noise.HIGH, new BigDecimal("4"))).collect(entriesToMap());
+
+    //BE Service - Positive contacts
+    String POSITIVE_CONTACTS_URL = "https://p0dgxly3y9.execute-api.us-east-2.amazonaws.com/svil/positive-contacts";
+
+    //BE Service - Second level contacts
+    String SECOND_LEV_CONTACTS_URL = "https://pb0prfgor0.execute-api.us-east-2.amazonaws.com/svil/second-level-contacts";
+
+    //BE Service - Swab management
+    String SWAB_MANAGEMENT_URL = "https://pb0prfgor0.execute-api.us-east-2.amazonaws.com/svil/second-level-contacts";
+
+    //Config consts
+    String CF_PARAM = "CF";
+    String TRACING_KEY_PARAM = "TRACING_KEY";
+
 }

@@ -3,6 +3,8 @@ package it.cs.contact.tracing.utils;
 import android.util.Log;
 
 import java.security.MessageDigest;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 public class ConTracUtils {
 
@@ -45,4 +47,53 @@ public class ConTracUtils {
         }
     }
 
+    public static int dateToNumber(final LocalDate date) {
+        return Integer.parseInt(date.format(DateTimeFormatter.BASIC_ISO_DATE));
+    }
+
+    public static String dateToString(final LocalDate date) {
+        return date.format(DateTimeFormatter.BASIC_ISO_DATE);
+    }
+
+    public static LocalDate numberToDate(final int num) {
+
+        try {
+
+            return stringToDate(String.valueOf(num));
+        } catch (final Exception e) {
+            Log.e(COMMON_UTILS, "Error ", e);
+            return null;
+        }
+    }
+
+    public static LocalDate stringToDate(final String str) {
+
+        try {
+
+            return LocalDate.parse(str, DateTimeFormatter.BASIC_ISO_DATE);
+
+        } catch (final Exception e) {
+
+            Log.e(COMMON_UTILS, "Error ", e);
+            return null;
+        }
+    }
+
+    public static boolean isValidDate(final Integer date) {
+
+        return isValidDate(String.valueOf(date));
+    }
+
+    public static boolean isValidDate(final String date) {
+
+        try {
+
+            LocalDate.parse(date, DateTimeFormatter.BASIC_ISO_DATE);
+            return true;
+        } catch (final Exception e) {
+
+            Log.e(COMMON_UTILS, "Error ", e);
+            return false;
+        }
+    }
 }

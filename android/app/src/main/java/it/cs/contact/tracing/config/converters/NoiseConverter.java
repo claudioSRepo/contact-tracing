@@ -3,7 +3,6 @@ package it.cs.contact.tracing.config.converters;
 import androidx.room.TypeConverter;
 
 import it.cs.contact.tracing.audio.DecibelMeter;
-import it.cs.contact.tracing.model.enums.BlType;
 
 public class NoiseConverter {
 

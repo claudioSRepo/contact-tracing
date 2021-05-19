@@ -6,10 +6,8 @@ import androidx.room.PrimaryKey;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 
-import it.cs.contact.tracing.audio.DecibelMeter;
-import it.cs.contact.tracing.model.enums.BlType;
+import it.cs.contact.tracing.model.enums.ContactType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,7 +16,7 @@ import lombok.Data;
 @Builder
 @Entity
 @AllArgsConstructor
-public class ConfirmedCase {
+public class RiskEvalTracing {
 
     @PrimaryKey(autoGenerate = true)
     public int uid;
@@ -26,9 +24,12 @@ public class ConfirmedCase {
     @ColumnInfo(name = "device_key")
     private String deviceKey;
 
-    @ColumnInfo(name = "reported_on")
-    private LocalDate reportedOn;
+    @ColumnInfo(name = "contact_type")
+    private ContactType contactType;
 
-    @ColumnInfo(name = "exposure")
-    private BigDecimal exposure;
+    @ColumnInfo(name = "ref_date")
+    private LocalDate refDate;
+
+    @ColumnInfo(name = "total_exposure")
+    private BigDecimal totalExposure;
 }

@@ -3,13 +3,17 @@ package it.cs.contact.tracing;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.provider.ContactsContract;
 
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import io.flutter.app.FlutterApplication;
 import it.cs.contact.tracing.config.Database;
+import it.cs.contact.tracing.dao.ConfigDao;
+import it.cs.contact.tracing.model.entity.Config;
+
+import static it.cs.contact.tracing.config.InternalConfig.CF_PARAM;
 
 public class CovidTracingAndroidApp extends FlutterApplication {
 
@@ -41,6 +45,26 @@ public class CovidTracingAndroidApp extends FlutterApplication {
         context = getApplicationContext();
         pool = Executors.newFixedThreadPool(2);
         db = Database.getInstance(context);
+
+        initRandomCF();
+    }
+
+    private void initRandomCF() {
+
+        final ConfigDao dao = db.configDao();
+
+        Config configEntity = dao.getConfigValue(CF_PARAM);
+
+        if (configEntity == null) {
+
+            final String randomCf = "RANDOM_CF_"
+                    + UUID.randomUUID().toString().substring(0, 10);
+
+            configEntity = Config.builder().key(CF_PARAM).value(
+                    randomCf).build();
+
+            dao.insert(configEntity);
+        }
     }
 
     public static Context getAppContext() {
@@ -55,4 +79,5 @@ public class CovidTracingAndroidApp extends FlutterApplication {
 
         return db;
     }
+
 }

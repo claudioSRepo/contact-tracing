@@ -29,11 +29,11 @@ import it.cs.contact.tracing.dao.ConfigDao;
 import it.cs.contact.tracing.model.entity.Config;
 import it.cs.contact.tracing.utils.ConTracUtils;
 
+import static it.cs.contact.tracing.config.InternalConfig.TRACING_KEY_PARAM;
+
 public class BleGattServer implements Runnable {
 
     private static final String TAG = "BleGattServer";
-
-    private static final String TRACING_KEY_PARAM = "TRACING_KEY";
 
     private static BleGattServer bleGattServer;
 
@@ -45,8 +45,7 @@ public class BleGattServer implements Runnable {
 
     private String tracingKey;
 
-    private AtomicBoolean runnning = new AtomicBoolean(false);
-
+    private final AtomicBoolean runnning = new AtomicBoolean(false);
 
     private BleGattServer(final BluetoothManager mBluetoothManager, final Context context) {
         this.mBluetoothManager = mBluetoothManager;
