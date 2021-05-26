@@ -5,9 +5,11 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
-import it.cs.contact.tracing.model.enums.ContactType;
+import it.cs.contact.tracing.model.enums.RiskType;
+import it.cs.contact.tracing.model.enums.RiskZone;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,14 +26,20 @@ public class CurrentRisk {
     private String deviceKey;
 
     @ColumnInfo(name = "type")
-    private ContactType type;
+    private RiskType type;
 
     @ColumnInfo(name = "total_risk")
     private BigDecimal totalRisk;
 
     @ColumnInfo(name = "risk_zone")
-    private String riskZone;
+    private RiskZone riskZone;
+
+    @ColumnInfo(name = "total_exposition_time")
+    private BigDecimal totalExpositionTime;
 
     @ColumnInfo(name = "calculated_on")
     private ZonedDateTime calculatedOn;
+
+    @ColumnInfo(name = "swabbedOn")
+    private LocalDate swabbedOn;
 }

@@ -2,6 +2,9 @@ package it.cs.contact.tracing.utils;
 
 import android.util.Log;
 
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
+
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -84,6 +87,10 @@ public class ConTracUtils {
         return isValidDate(String.valueOf(date));
     }
 
+    public static <T> void printSaved(final T object) {
+        Log.i(COMMON_UTILS, "Object Saved: " + object);
+    }
+
     public static boolean isValidDate(final String date) {
 
         try {
@@ -96,4 +103,40 @@ public class ConTracUtils {
             return false;
         }
     }
+
+    public static String getString(final JSONObject jsonObject, final String key) {
+
+        try {
+            if (jsonObject.has(key)) {
+                return StringUtils.trimToEmpty(jsonObject.getString(key));
+            }
+        } catch (Exception e) {
+            Log.i(COMMON_UTILS, "", e);
+        }
+
+        return null;
+    }
+
+    public static Integer getInt(final JSONObject jsonObject, final String key) {
+
+        try {
+            if (jsonObject.has(key)) {
+                return jsonObject.getInt(key);
+            }
+        } catch (Exception e) {
+            Log.i(COMMON_UTILS, "", e);
+        }
+
+        return null;
+    }
+
+    public static <T> void put(final JSONObject jsonObject, final String key, final T value) {
+
+        try {
+            jsonObject.put(key, value);
+        } catch (Exception e) {
+            Log.i(COMMON_UTILS, "", e);
+        }
+    }
+
 }

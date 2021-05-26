@@ -20,6 +20,7 @@ import it.cs.contact.tracing.ble.BleGattServer;
 import it.cs.contact.tracing.ble.BleScanner;
 import it.cs.contact.tracing.config.InternalConfig;
 import it.cs.contact.tracing.contacts.ExposureAssessmentManager;
+import it.cs.contact.tracing.positiveswab.PositiveSwabAssessmentManager;
 import lombok.NoArgsConstructor;
 
 import static it.cs.contact.tracing.config.InternalConfig.BL_FIRST_SCAN;
@@ -57,6 +58,10 @@ public class BlForegroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        if (intent == null || intent.getAction() == null) {
+            return super.onStartCommand(intent, flags, startId);
+        }
+
         final String action = intent.getAction();
 
         Log.i(TAG, "onHandleIntent. Action: " + action);
@@ -67,6 +72,7 @@ public class BlForegroundService extends Service {
                 startBlClientNextFire(BL_FIRST_SCAN);
                 startBlServerJob();
                 scheduleDailyExposureAssessmentJob();
+                scheduleDailySwabAssessmentJob();
                 break;
 
             case ACTION_START_SERVER:
@@ -81,9 +87,9 @@ public class BlForegroundService extends Service {
             case ACTION_DAILY_EXPOSURE_ASSESSMENT:
                 CovidTracingAndroidApp.getThreadPool().execute(new ExposureAssessmentManager());
                 break;
-                
+
             case ACTION_DAILY_SWAB_ASSESSMENT:
-                CovidTracingAndroidApp.getThreadPool().execute(new ExposureAssessmentManager());
+                CovidTracingAndroidApp.getThreadPool().execute(new PositiveSwabAssessmentManager());
                 break;
         }
         return super.onStartCommand(intent, flags, startId);
@@ -135,7 +141,7 @@ public class BlForegroundService extends Service {
 
         alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + 500, //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
-                InternalConfig.BLE_RESTART_SERVER, pendingIntent); //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
+                60000, pendingIntent); //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
     }
 
     private void scheduleDailySwabAssessmentJob() {
@@ -152,7 +158,7 @@ public class BlForegroundService extends Service {
 
         alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 SystemClock.elapsedRealtime() + 500, //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
-                InternalConfig.BLE_RESTART_SERVER, pendingIntent); //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
+                60000, pendingIntent); //TODO: modify  EXPOSURE_ASSESSMENT_SCHEDULING
     }
 
     private void startScan() {

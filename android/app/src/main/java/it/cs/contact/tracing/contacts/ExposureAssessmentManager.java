@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
-import it.cs.contact.tracing.api.client.SimpleClient;
+import it.cs.contact.tracing.api.client.RestClient;
 import it.cs.contact.tracing.api.dto.PositiveContactDTO;
 import it.cs.contact.tracing.config.InternalConfig;
 import it.cs.contact.tracing.model.entity.DeviceTrace;
@@ -22,6 +22,8 @@ public class ExposureAssessmentManager implements Runnable {
 
     @Override
     public void run() {
+
+        Log.d(TAG, "RUNNING()");
         startPeriodicAssertion();
     }
 
@@ -34,14 +36,7 @@ public class ExposureAssessmentManager implements Runnable {
 
         Log.d(TAG, "My contacts retrieved: " + myContacts.size());
 
-
-        //Retrieve already confirmed cases
-//        final Map<String, RiskEvalTracing> alreadyConfirmedCases = retrieveAlreadyConfirmedCases();
-
-//        Log.d(TAG, "Already confirmed cases: " + alreadyConfirmedCases);
-
         final Set<String> deviceKeysToProcess = new HashSet<>(myContacts.keySet());
-//        deviceKeysToProcess.removeIf(alreadyConfirmedCases::containsKey);
 
         //For each contact, check if it has a positive swab.
         deviceKeysToProcess.forEach(key -> processIfPositiveContact(key, myContacts));
@@ -49,7 +44,6 @@ public class ExposureAssessmentManager implements Runnable {
         //For each contact, check if it has a second level contact
         deviceKeysToProcess.forEach(key -> processIfSecondLevelContact(key, myContacts));
     }
-
 
     private ConcurrentMap<String, List<DeviceTrace>> retrieveMyContacts() {
 
@@ -59,17 +53,9 @@ public class ExposureAssessmentManager implements Runnable {
         return myContacts.stream().collect(Collectors.groupingByConcurrent(DeviceTrace::getDeviceKey));
     }
 
-//    private Map<String, RiskEvalTracing> retrieveAlreadyConfirmedCases() {
-//
-//        final LocalDate fromDay = LocalDate.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH);
-//        final List<RiskEvalTracing> confirmedCases = CovidTracingAndroidApp.getDb().confirmedCaseDao().findAfter(fromDay);
-//
-//        return confirmedCases.stream().collect(Collectors.toMap(RiskEvalTracing::getDeviceKey, Function.identity()));
-//    }
-
     private void processIfPositiveContact(final String key, final ConcurrentMap<String, List<DeviceTrace>> myContacts) {
 
-        SimpleClient.get(InternalConfig.POSITIVE_CONTACTS_URL, key, PositiveContactDTO::fromJson, (PositiveContactDTO dto) -> {
+        RestClient.getInstance().get(InternalConfig.POSITIVE_CONTACTS_URL, key, PositiveContactDTO::fromJson, (PositiveContactDTO dto) -> {
 
             Log.d(TAG, "Processing pc:  " + dto);
 
@@ -82,12 +68,11 @@ public class ExposureAssessmentManager implements Runnable {
                 ConTracUtils.wait(10);
             }
         });
-
     }
 
     private void processIfSecondLevelContact(final String key, final ConcurrentMap<String, List<DeviceTrace>> myContacts) {
 
-        SimpleClient.get(InternalConfig.SECOND_LEV_CONTACTS_URL, key, PositiveContactDTO::fromJson, (PositiveContactDTO dto) -> {
+        RestClient.getInstance().get(InternalConfig.SECOND_LEV_CONTACTS_URL, key, PositiveContactDTO::fromJson, (PositiveContactDTO dto) -> {
 
             Log.d(TAG, "Processing slc:  " + dto);
 
@@ -99,7 +84,5 @@ public class ExposureAssessmentManager implements Runnable {
                 ConTracUtils.wait(10);
             }
         });
-
     }
-
 }

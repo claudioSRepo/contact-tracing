@@ -18,6 +18,8 @@ import it.cs.contact.tracing.model.entity.CurrentRisk;
 import it.cs.contact.tracing.model.entity.DeviceTrace;
 import it.cs.contact.tracing.model.entity.RiskEvalTracing;
 import it.cs.contact.tracing.model.enums.ContactType;
+import it.cs.contact.tracing.model.enums.RiskType;
+import it.cs.contact.tracing.model.enums.RiskZone;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
@@ -38,12 +40,11 @@ public class SecondLevelContactExposure implements Runnable {
         processRisk();
     }
 
-
     private void processRisk() {
 
         final CurrentRisk currentRisk = CovidTracingAndroidApp.getDb().currentRiskDao().findByKey(key);
 
-        if (currentRisk != null && currentRisk.getType().equals(ContactType.DIRECT)
+        if (currentRisk != null && currentRisk.getType().equals(RiskType.DIRECT_CONTACT)
                 && currentRisk.getCalculatedOn().isAfter(ZonedDateTime.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH))) {
 
             //No action. Direct contact found.
@@ -51,8 +52,11 @@ public class SecondLevelContactExposure implements Runnable {
             return;
         }
 
-        final AtomicReference<BigDecimal> sum = new AtomicReference<>();
-        sum.set(BigDecimal.ZERO);
+        final AtomicReference<BigDecimal> totalRiskSum = new AtomicReference<>();
+        totalRiskSum.set(BigDecimal.ZERO);
+
+        final AtomicReference<BigDecimal> totalTimeSum = new AtomicReference<>();
+        totalTimeSum.set(BigDecimal.ZERO);
 
         final List<DeviceTrace> myContactRecord = myContacts.get(key);
 
@@ -67,25 +71,40 @@ public class SecondLevelContactExposure implements Runnable {
 
         for (final Map.Entry<Integer, DeviceTrace> entry : grouped.entrySet()) {
 
+            //Calculate risk for single day
             final BigDecimal weightedRiskValue = entry.getValue().getExposure().multiply(
                     InternalConfig.DISTRIBUTION_WEIGHT_MAP.getOrDefault(entry.getKey(), BigDecimal.ZERO)).multiply(InternalConfig.SECOND_LEVEL_CONTACT_FACTOR);
 
             Log.v(TAG, "Date: " + entry.getValue().getDate() + ", day: " + entry.getKey());
             Log.v(TAG, "Value: " + entry.getValue().getExposure() + ", weighted: " + weightedRiskValue);
 
-            CovidTracingAndroidApp.getDb().riskEvalTracingDao().insert(RiskEvalTracing.builder().deviceKey(key)
-                    .contactType(ContactType.SL).refDate(entry.getValue().getDate()).totalExposure(weightedRiskValue).build());
+            //Sum of risk value by day
+            totalRiskSum.set(totalRiskSum.get().add(weightedRiskValue));
 
-            sum.set(sum.get().add(weightedRiskValue));
+            //Sum of time spent with contact at risk
+            totalTimeSum.set(totalRiskSum.get().add(entry.getValue().getExpositionTime()));
+
+            //Save tracing to DB
+            CovidTracingAndroidApp.getDb().riskEvalTracingDao().insert(RiskEvalTracing.builder()
+                    .deviceKey(key)
+                    .contactType(ContactType.SL)
+                    .refDate(entry.getValue().getDate())
+                    .dayExpositionTime(entry.getValue().getExpositionTime())
+                    .dayExposure(weightedRiskValue)
+                    .build());
         }
 
-        final BigDecimal totalRiskValue = sum.get();
-        final CurrentRisk riskEntity = CurrentRisk.builder().deviceKey(key).calculatedOn(ZonedDateTime.now()).totalRisk(totalRiskValue).riskZone(evaluate(totalRiskValue)).type(ContactType.DIRECT).build();
-
+        final CurrentRisk riskEntity = CurrentRisk.builder()
+                .deviceKey(key)
+                .calculatedOn(ZonedDateTime.now())
+                .totalExpositionTime(totalTimeSum.get())
+                .totalRisk(totalRiskSum.get())
+                .riskZone(evaluate(totalRiskSum.get()))
+                .type(RiskType.SL_CONTACT).build();
 
         CovidTracingAndroidApp.getDb().currentRiskDao().insert(riskEntity);
 
-        Log.i(TAG, "Total risk value:" + totalRiskValue);
+        Log.i(TAG, "Total risk value:" + totalRiskSum.get());
     }
 
     private Integer getDay(final DeviceTrace t) {
@@ -93,8 +112,8 @@ public class SecondLevelContactExposure implements Runnable {
         return (int) Duration.between(LocalDate.now().atStartOfDay(), t.getDate().atStartOfDay()).toDays();
     }
 
-    private String evaluate(BigDecimal totalRiskValue) {
+    private RiskZone evaluate(BigDecimal totalRiskValue) {
 
-        return InternalConfig.RISK_ZONE_MAP.floorKey(totalRiskValue.intValue()).toString();
+        return InternalConfig.RISK_ZONE_MAP.floorEntry(totalRiskValue.intValue()).getValue();
     }
 }

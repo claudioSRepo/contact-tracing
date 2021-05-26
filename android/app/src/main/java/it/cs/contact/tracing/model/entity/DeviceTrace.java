@@ -38,6 +38,9 @@ public class DeviceTrace {
     @ColumnInfo(name = "wifi_connected")
     private boolean wifiConnected;
 
+    @ColumnInfo(name = "exposition_time")
+    private BigDecimal expositionTime;
+
     @ColumnInfo(name = "exposure")
     private BigDecimal exposure;
 

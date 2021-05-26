@@ -11,17 +11,25 @@ import androidx.core.app.ActivityCompat;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
+import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugins.GeneratedPluginRegistrant;
+import it.cs.contact.tracing.flutter.UiRiskProvider;
 import it.cs.contact.tracing.foreground.BlForegroundService;
 
 public class MainActivity extends FlutterActivity {
 
     public static final String TAG = "MainActivity";
 
+    private static final String GET_RISK_CHANNEL = "it.cs.contact.tracing/getRisk";
+
     @Override
     public void configureFlutterEngine(@NonNull final FlutterEngine flutterEngine) {
 
+        super.configureFlutterEngine(flutterEngine);
         GeneratedPluginRegistrant.registerWith(flutterEngine);
+
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), GET_RISK_CHANNEL)
+                .setMethodCallHandler(UiRiskProvider.getRiskSummaryHandler);
     }
 
     @Override
@@ -30,7 +38,10 @@ public class MainActivity extends FlutterActivity {
 
         Log.i(TAG, "Creating main activity");
 
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 34242);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.INTERNET, Manifest.permission.ACCESS_NETWORK_STATE, Manifest.permission.FOREGROUND_SERVICE,
+                Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN, Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS}, 456348);
 
         startForegroundService();
     }

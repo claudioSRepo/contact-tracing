@@ -13,7 +13,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
-import it.cs.contact.tracing.api.client.SimpleClient;
+import it.cs.contact.tracing.api.client.RestClient;
 import it.cs.contact.tracing.api.dto.SecondLevelContactDTO;
 import it.cs.contact.tracing.api.dto.SwabDTO;
 import it.cs.contact.tracing.config.InternalConfig;
@@ -21,6 +21,8 @@ import it.cs.contact.tracing.model.entity.CurrentRisk;
 import it.cs.contact.tracing.model.entity.DeviceTrace;
 import it.cs.contact.tracing.model.entity.RiskEvalTracing;
 import it.cs.contact.tracing.model.enums.ContactType;
+import it.cs.contact.tracing.model.enums.RiskType;
+import it.cs.contact.tracing.model.enums.RiskZone;
 import it.cs.contact.tracing.utils.ConTracUtils;
 import lombok.AllArgsConstructor;
 
@@ -50,11 +52,13 @@ public class DirectContactExposure implements Runnable {
         registerSecondLevelContact();
     }
 
-
     private BigDecimal processRisk() {
 
-        final AtomicReference<BigDecimal> sum = new AtomicReference<>();
-        sum.set(BigDecimal.ZERO);
+        final AtomicReference<BigDecimal> totalRiskSum = new AtomicReference<>();
+        totalRiskSum.set(BigDecimal.ZERO);
+
+        final AtomicReference<BigDecimal> totalTimeSum = new AtomicReference<>();
+        totalTimeSum.set(BigDecimal.ZERO);
 
         final List<DeviceTrace> myContactRecord = myContacts.get(key);
 
@@ -69,25 +73,42 @@ public class DirectContactExposure implements Runnable {
 
         for (final Map.Entry<Integer, DeviceTrace> entry : grouped.entrySet()) {
 
+            //Calculate risk for single day
             final BigDecimal weightedRiskValue = entry.getValue().getExposure().multiply(
                     InternalConfig.DISTRIBUTION_WEIGHT_MAP.getOrDefault(entry.getKey(), BigDecimal.ZERO));
 
             Log.v(TAG, "Date: " + entry.getValue().getDate() + ", day: " + entry.getKey());
             Log.v(TAG, "Value: " + entry.getValue().getExposure() + ", weighted: " + weightedRiskValue);
 
-            CovidTracingAndroidApp.getDb().riskEvalTracingDao().insert(RiskEvalTracing.builder().deviceKey(key)
-                    .contactType(ContactType.DIRECT).refDate(entry.getValue().getDate()).totalExposure(weightedRiskValue).build());
+            //Sum of risk value by day
+            totalRiskSum.set(totalRiskSum.get().add(weightedRiskValue));
 
-            sum.set(sum.get().add(weightedRiskValue));
+            //Sum of time spent with contact at risk
+            totalTimeSum.set(totalRiskSum.get().add(entry.getValue().getExpositionTime()));
+
+            //Save tracing to DB
+            CovidTracingAndroidApp.getDb().riskEvalTracingDao().insert(RiskEvalTracing.builder()
+                    .deviceKey(key)
+                    .contactType(ContactType.DIRECT)
+                    .refDate(entry.getValue().getDate())
+                    .dayExpositionTime(entry.getValue().getExpositionTime())
+                    .dayExposure(weightedRiskValue)
+                    .build());
+
         }
 
-        final BigDecimal totalRiskValue = sum.get();
-        final CurrentRisk riskEntity = CurrentRisk.builder().deviceKey(key).calculatedOn(ZonedDateTime.now()).totalRisk(totalRiskValue).riskZone(evaluate(totalRiskValue)).type(ContactType.DIRECT).build();
+        final CurrentRisk riskEntity = CurrentRisk.builder()
+                .deviceKey(key)
+                .calculatedOn(ZonedDateTime.now())
+                .totalExpositionTime(totalTimeSum.get())
+                .totalRisk(totalRiskSum.get())
+                .riskZone(evaluate(totalRiskSum.get()))
+                .type(RiskType.DIRECT_CONTACT).build();
 
         CovidTracingAndroidApp.getDb().currentRiskDao().insert(riskEntity);
 
-        Log.i(TAG, "Total risk value:" + totalRiskValue);
-        return totalRiskValue;
+        Log.i(TAG, "Total risk value:" + totalRiskSum.get());
+        return totalRiskSum.get();
     }
 
 
@@ -96,10 +117,10 @@ public class DirectContactExposure implements Runnable {
         final String cf = CovidTracingAndroidApp.getDb().configDao().getConfigValue(InternalConfig.CF_PARAM).getValue();
         final int dateNumber = ConTracUtils.dateToNumber(LocalDate.now());
 
-        final SimpleClient.GenericServiceResource dto = SwabDTO.builder().fiscalCode(cf).reportedOn(dateNumber).totalRisk(totalRiskValue).state(SwabDTO.SwabState.IN_QUEUE).build();
+        final RestClient.GenericServiceResource dto = SwabDTO.builder().fiscalCode(cf)
+                .reportedOn(dateNumber).totalRisk(totalRiskValue.toPlainString()).state(SwabDTO.SwabState.IN_QUEUE).build();
 
-        SimpleClient.put(InternalConfig.SWAB_MANAGEMENT_URL, dto, SwabDTO::toJson, SwabDTO::fromJson, (swabDTO) -> {
-        });
+        RestClient.getInstance().put(InternalConfig.SWAB_MANAGEMENT_URL, dto, SwabDTO::toJson, SwabDTO::fromJson, ConTracUtils::printSaved);
     }
 
     private void registerSecondLevelContact() {
@@ -107,10 +128,9 @@ public class DirectContactExposure implements Runnable {
         final String deviceKey = CovidTracingAndroidApp.getDb().configDao().getConfigValue(TRACING_KEY_PARAM).getValue();
         final int dateNumber = ConTracUtils.dateToNumber(LocalDate.now());
 
-        final SimpleClient.GenericServiceResource dto = SecondLevelContactDTO.builder().deviceKey(deviceKey).communicatedOn(dateNumber).build();
+        final RestClient.GenericServiceResource dto = SecondLevelContactDTO.builder().deviceKey(deviceKey).communicatedOn(dateNumber).build();
 
-        SimpleClient.post(InternalConfig.SECOND_LEV_CONTACTS_URL, dto, SecondLevelContactDTO::toJson, SecondLevelContactDTO::fromJson, (SecondLevelContactDTO) -> {
-        });
+        RestClient.getInstance().post(InternalConfig.SECOND_LEV_CONTACTS_URL, dto, SecondLevelContactDTO::toJson, SecondLevelContactDTO::fromJson, ConTracUtils::printSaved);
     }
 
     private Integer getDay(final DeviceTrace t) {
@@ -118,8 +138,8 @@ public class DirectContactExposure implements Runnable {
         return (int) Duration.between(LocalDate.now().atStartOfDay(), t.getDate().atStartOfDay()).toDays();
     }
 
-    private String evaluate(BigDecimal totalRiskValue) {
+    private RiskZone evaluate(BigDecimal totalRiskValue) {
 
-        return InternalConfig.RISK_ZONE_MAP.floorKey(totalRiskValue.intValue()).toString();
+        return InternalConfig.RISK_ZONE_MAP.floorEntry(totalRiskValue.intValue()).getValue();
     }
 }

@@ -2,33 +2,39 @@ package it.cs.contact.tracing.api.dto;
 
 import org.json.JSONObject;
 
-import it.cs.contact.tracing.api.client.SimpleClient;
+import it.cs.contact.tracing.api.client.RestClient;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NonNull;
-import lombok.SneakyThrows;
+
+import static it.cs.contact.tracing.utils.ConTracUtils.getInt;
+import static it.cs.contact.tracing.utils.ConTracUtils.getString;
+import static it.cs.contact.tracing.utils.ConTracUtils.put;
 
 @Data
 @Builder
-public class SecondLevelContactDTO implements SimpleClient.GenericServiceResource {
+public class SecondLevelContactDTO implements RestClient.GenericServiceResource {
 
-    @NonNull
     private String deviceKey;
 
-    private int communicatedOn;
+    private Integer communicatedOn;
 
-    @SneakyThrows
-    public static SimpleClient.GenericServiceResource fromJson(final JSONObject jsonObject) {
+    public static RestClient.GenericServiceResource fromJson(final JSONObject jsonObject) {
 
-        return builder().deviceKey(jsonObject.getString("deviceKey")).communicatedOn(jsonObject.getInt("communicatedOn")).build();
+        if (jsonObject == null || getString(jsonObject, "deviceKey") == null) return null;
+
+        return builder().deviceKey(getString(jsonObject, "deviceKey"))
+                .communicatedOn(getInt(jsonObject, "communicatedOn"))
+                .build();
     }
 
-    @SneakyThrows
-    public static JSONObject toJson(final SimpleClient.GenericServiceResource res) {
+    public static JSONObject toJson(final RestClient.GenericServiceResource res) {
+
+        if (res == null) return null;
 
         final JSONObject o = new JSONObject();
-        o.put("deviceKey", ((SecondLevelContactDTO) res).deviceKey);
-        o.put("communicatedOn", ((SecondLevelContactDTO) res).communicatedOn);
+
+        put(o, "deviceKey", ((SecondLevelContactDTO) res).deviceKey);
+        put(o, "communicatedOn", ((SecondLevelContactDTO) res).communicatedOn);
         return o;
     }
 

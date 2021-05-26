@@ -1,3 +1,4 @@
+import 'package:covd19/ui/Detail2.dart';
 import 'package:covd19/ui/HomePage.dart';
 import 'package:covd19/ui/colors.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +30,7 @@ class _StartScreenState extends State<StartScreen> {
 
   static List<Widget> _widgetOptions = <Widget>[
     HomePage(),
-    DetailPage(),
+    Detail2(),
   ];
 
   @override
@@ -64,7 +65,7 @@ class _StartScreenState extends State<StartScreen> {
                   ),
                   GButton(
                     icon: LineIcons.bar_chart,
-                    text: 'Detail',
+                    text: 'Dettagli',
                   ),
                 ],
                 selectedIndex: _selectedIndex,

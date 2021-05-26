@@ -26,6 +26,9 @@ public class BluetoothDeviceTracer {
 
     private static final double N = 2;
 
+    private static BigDecimal MINUTES_FROM_LAST_SCAN = BigDecimal.valueOf(BL_SCAN_SCHEDULING_OFFSET).
+            divide(new BigDecimal("60000"), 1, RoundingMode.HALF_UP);
+
     public static void trace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
 
         CovidTracingAndroidApp.getThreadPool().execute(() -> new BluetoothDeviceTracer().runAsyncTrace(rawDevice, deviceKey, rssiSignalStrength, blType));
@@ -60,6 +63,7 @@ public class BluetoothDeviceTracer {
         deviceTrace.setDistanceSum(deviceTrace.getDistanceSum().add(estimatedDistance));
         deviceTrace.setSignalStrengthSum(deviceTrace.getSignalStrengthSum() + rssiSignalStrength);
         deviceTrace.setExposure(deviceTrace.getExposure().add(exposure));
+        deviceTrace.setExpositionTime(deviceTrace.getExpositionTime().add(MINUTES_FROM_LAST_SCAN));
         deviceTrace.setUpdateVersion(deviceTrace.getUpdateVersion() + 1);
         deviceTrace.setTimestamp(ZonedDateTime.now());
 
@@ -68,7 +72,6 @@ public class BluetoothDeviceTracer {
 
     private DeviceTrace toDeviceEntity(final int rssi, final String deviceKey, final BluetoothDevice deviceObj, final BlType blType,
                                        final BigDecimal estimatedDistance, final BigDecimal exposure, final boolean wifi, final DecibelMeter.Noise noise) {
-
         final String macAddress = deviceObj.getAddress();
 
         return DeviceTrace.builder()
@@ -77,6 +80,7 @@ public class BluetoothDeviceTracer {
                 .distanceSum(estimatedDistance)
                 .updateVersion(1)
                 .exposure(exposure)
+                .expositionTime(MINUTES_FROM_LAST_SCAN)
                 .from(blType)
                 .noise(noise)
                 .wifiConnected(wifi)
@@ -124,8 +128,7 @@ public class BluetoothDeviceTracer {
         final BigDecimal noiseMultiplier = InternalConfig.NOISE_MULTIPLIER_MAP.get(noise);
         final BigDecimal adjustedDistance = distance.max(InternalConfig.MIN_DISTANCE);
 
-        return BigDecimal.valueOf(BL_SCAN_SCHEDULING_OFFSET).
-                divide(new BigDecimal("6000"), 1, RoundingMode.HALF_UP).
+        return MINUTES_FROM_LAST_SCAN.
                 divide(adjustedDistance, 1, RoundingMode.HALF_UP).
                 multiply(indoorMultiplier).multiply(noiseMultiplier);
     }

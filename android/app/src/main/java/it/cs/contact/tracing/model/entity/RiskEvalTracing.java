@@ -30,6 +30,9 @@ public class RiskEvalTracing {
     @ColumnInfo(name = "ref_date")
     private LocalDate refDate;
 
-    @ColumnInfo(name = "total_exposure")
-    private BigDecimal totalExposure;
+    @ColumnInfo(name = "day_exposure")
+    private BigDecimal dayExposure;
+
+    @ColumnInfo(name = "day_exposition_time")
+    private BigDecimal dayExpositionTime;
 }

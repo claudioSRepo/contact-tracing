@@ -11,6 +11,7 @@ import it.cs.contact.tracing.config.converters.ContactTypeConverter;
 import it.cs.contact.tracing.config.converters.DateConverter;
 import it.cs.contact.tracing.config.converters.NoiseConverter;
 import it.cs.contact.tracing.config.converters.NumberConverter;
+import it.cs.contact.tracing.config.converters.RiskTypeConverter;
 import it.cs.contact.tracing.config.converters.RiskZoneConverter;
 import it.cs.contact.tracing.dao.ConfigDao;
 import it.cs.contact.tracing.dao.CurrentRiskDao;
@@ -21,8 +22,8 @@ import it.cs.contact.tracing.model.entity.CurrentRisk;
 import it.cs.contact.tracing.model.entity.DeviceTrace;
 import it.cs.contact.tracing.model.entity.RiskEvalTracing;
 
-@androidx.room.Database(entities = {DeviceTrace.class, Config.class, RiskEvalTracing.class, CurrentRisk.class}, version = 12, exportSchema = false)
-@TypeConverters({DateConverter.class, NumberConverter.class, BlTypeConverter.class, NoiseConverter.class, ContactTypeConverter.class, RiskZoneConverter.class})
+@androidx.room.Database(entities = {DeviceTrace.class, Config.class, RiskEvalTracing.class, CurrentRisk.class}, version = 14, exportSchema = false)
+@TypeConverters({DateConverter.class, NumberConverter.class, BlTypeConverter.class, NoiseConverter.class, ContactTypeConverter.class, RiskZoneConverter.class, RiskTypeConverter.class})
 public abstract class Database extends RoomDatabase {
 
     private static Database dbInstance = null;

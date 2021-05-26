@@ -41,6 +41,9 @@ public interface InternalConfig {
 
     //Tracing
     short TRACING_DAYS_LENGTH = 14;
+    short POSITIVE_SWAB_VALIDITY_DAYS_LENGTH = 14;
+    short NEGATIVE_SWAB_VALIDITY_DAYS_LENGTH = 3;
+
     short MIN_EXPOSURE_TRACING = 0;
     BigDecimal SECOND_LEVEL_CONTACT_FACTOR = new BigDecimal("0.25");
 
@@ -71,8 +74,8 @@ public interface InternalConfig {
     //Noise configuration
     NavigableMap<Integer, DecibelMeter.Noise> NOISE_ZONE_MAP = MapUtils.toNavigableMap(Stream.of(
             entry(0, DecibelMeter.Noise.LOW),
-            entry(60, DecibelMeter.Noise.MEDIUM),
-            entry(80, DecibelMeter.Noise.HIGH)).collect(entriesToMap()));
+            entry(50, DecibelMeter.Noise.MEDIUM),
+            entry(70, DecibelMeter.Noise.HIGH)).collect(entriesToMap()));
 
     Map<DecibelMeter.Noise, BigDecimal> NOISE_MULTIPLIER_MAP = Stream.of(
             entry(DecibelMeter.Noise.LOW, BigDecimal.ONE),
@@ -86,10 +89,10 @@ public interface InternalConfig {
     String SECOND_LEV_CONTACTS_URL = "https://pb0prfgor0.execute-api.us-east-2.amazonaws.com/svil/second-level-contacts";
 
     //BE Service - Swab management
-    String SWAB_MANAGEMENT_URL = "https://pb0prfgor0.execute-api.us-east-2.amazonaws.com/svil/second-level-contacts";
+    String SWAB_MANAGEMENT_URL = "https://ncudogc8r8.execute-api.us-east-2.amazonaws.com/svil/swabs";
 
     //Config consts
     String CF_PARAM = "CF";
     String TRACING_KEY_PARAM = "TRACING_KEY";
-
+    String MYSELF = "#MYSELF#";
 }

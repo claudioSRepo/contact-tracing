@@ -4,7 +4,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 
-import java.util.UUID;
+import org.apache.commons.lang3.RandomStringUtils;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -58,7 +59,7 @@ public class CovidTracingAndroidApp extends FlutterApplication {
         if (configEntity == null) {
 
             final String randomCf = "RANDOM_CF_"
-                    + UUID.randomUUID().toString().substring(0, 10);
+                    + RandomStringUtils.random(6, true, true);
 
             configEntity = Config.builder().key(CF_PARAM).value(
                     randomCf).build();

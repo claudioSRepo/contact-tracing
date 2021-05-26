@@ -1,45 +1,56 @@
 package it.cs.contact.tracing.api.dto;
 
+import android.util.Log;
+
 import org.json.JSONObject;
 
-import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
 
-import it.cs.contact.tracing.api.client.SimpleClient;
+import it.cs.contact.tracing.api.client.RestClient;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NonNull;
-import lombok.SneakyThrows;
+
+import static it.cs.contact.tracing.utils.ConTracUtils.getInt;
+import static it.cs.contact.tracing.utils.ConTracUtils.getString;
+import static it.cs.contact.tracing.utils.ConTracUtils.put;
 
 @Data
 @Builder
-public class SwabDTO implements SimpleClient.GenericServiceResource {
+public class SwabDTO implements RestClient.GenericServiceResource {
 
-    @NonNull
+    private final static String TAG = "SwabDTO";
+
     private String fiscalCode;
 
-    private int reportedOn;
+    private Integer reportedOn;
 
-    private BigDecimal totalRisk;
+    private String totalRisk;
 
-    @NonNull
     private SwabState state;
 
-    @SneakyThrows
-    public static SimpleClient.GenericServiceResource fromJson(final JSONObject jsonObject) {
+    public static RestClient.GenericServiceResource fromJson(final JSONObject jsonObject) {
 
-        return builder().fiscalCode(jsonObject.getString("fiscalCode")).reportedOn(jsonObject.getInt("reportedOn"))
-                .totalRisk(new BigDecimal(jsonObject.getString("totalRisk")))
-                .state(SwabState.valueOf(jsonObject.getString("state"))).build();
+        Log.d(TAG, "Parsing json : " + jsonObject);
+
+        if (jsonObject == null || getString(jsonObject, "fiscalCode") == null) return null;
+
+        return builder().fiscalCode(getString(jsonObject, "fiscalCode"))
+                .reportedOn(getInt(jsonObject, "reportedOn"))
+                .totalRisk(getString(jsonObject, "totalRisk"))
+                .state(SwabState.from(getString(jsonObject, "state")))
+                .build();
     }
 
-    @SneakyThrows
-    public static JSONObject toJson(final SimpleClient.GenericServiceResource res) {
+    public static JSONObject toJson(final RestClient.GenericServiceResource res) {
+
+        if (res == null) return null;
 
         final JSONObject o = new JSONObject();
-        o.put("fiscalCode", ((SwabDTO) res).fiscalCode);
-        o.put("reportedOn", ((SwabDTO) res).reportedOn);
-        o.put("totalRisk", ((SwabDTO) res).totalRisk);
-        o.put("state", ((SwabDTO) res).state.toString());
+        put(o, "fiscalCode", ((SwabDTO) res).fiscalCode);
+        put(o, "reportedOn", ((SwabDTO) res).reportedOn);
+        put(o, "totalRisk", ((SwabDTO) res).totalRisk);
+        put(o, "state", ((SwabDTO) res).state);
         return o;
     }
 
@@ -61,6 +72,17 @@ public class SwabDTO implements SimpleClient.GenericServiceResource {
 
     public enum SwabState {
 
-        IN_QUEUE, WAITING_FOR_RESULT, POSITIVE, NEGATIVE
+        IN_QUEUE, WAITING_FOR_RESULT, POSITIVE, NEGATIVE;
+
+        private final static Set<String> values = new HashSet<>(SwabState.values().length);
+
+        static {
+            for (final SwabState f : SwabState.values())
+                values.add(f.name());
+        }
+
+        public static SwabState from(final String key) {
+            return values.contains(key) ? SwabState.valueOf(key) : null;
+        }
     }
 }
