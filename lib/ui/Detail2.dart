@@ -36,11 +36,11 @@ class _Detail2 extends State<Detail2> {
             padding:
             const EdgeInsets.only(left: 0, right: 0, top: 0, bottom: 18),
             child: Container(
-              padding: EdgeInsets.fromLTRB(25, 25, 0, 25),
+              padding: EdgeInsets.fromLTRB(10, 10, 0, 10),
               child: Column(
                 children: <Widget>[
                   Padding(
-                    padding: const EdgeInsets.only(top: 5, left: 16, right: 16),
+                    padding: const EdgeInsets.only(top: 5, left: 10, right: 10),
                     child: Row(
                       children: <Widget>[
                         Expanded(
@@ -99,7 +99,7 @@ class _Detail2 extends State<Detail2> {
                                                     bottom: 3),
                                                 child: Text(
                                                   riskItem != null
-                                                      ? riskItem["riskZone"]
+                                                      ? riskItem["riskZoneDesc"]
                                                       : 'ND',
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
@@ -366,21 +366,25 @@ class _Detail2 extends State<Detail2> {
                                       CrossAxisAlignment.center,
                                       children: <Widget>[
                                         Text(
+                                          'Rischio:',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            letterSpacing: 0.0,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 5,
+                                          height: 5,
+                                        ),
+                                        Text(
                                           riskItem != null
                                               ? riskItem["riskValue"]
                                               : '0',
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            fontSize: 24,
-                                            letterSpacing: 0.0,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Risk',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: 12,
+                                            fontSize: 17,
                                             letterSpacing: 0.0,
                                             color: Colors.black,
                                           ),
@@ -393,15 +397,14 @@ class _Detail2 extends State<Detail2> {
                                   padding: const EdgeInsets.all(4.0),
                                   child: CustomPaint(
                                     painter: CurvePainter(
-
                                         colors: [
-                                          Colors.orange.shade100,
-                                          Colors.red.shade500,
+                                          Colors.green.shade300,
+                                          Colors.orange.shade600,
                                           new Color(0xFF971C1C),
                                         ],
                                         angle: (3.60 *
                                             (riskItem != null
-                                                ? 0//riskItem["riskPercentage"]
+                                                ? riskItem["riskPercentage"]
                                                 : 0))),
                                     child: SizedBox(
                                       width: 105,
@@ -608,7 +611,7 @@ class CurvePainter extends CustomPainter {
 
     final gradient1 = new SweepGradient(
       tileMode: TileMode.repeated,
-      colors: [Colors.white, Colors.white],
+      colors: [Colors.orange, Colors.white],
     );
 
     var cPaint = new Paint();

@@ -1,8 +1,11 @@
 package it.cs.contact.tracing.utils;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -13,9 +16,9 @@ import org.json.JSONObject;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Random;
 
 import it.cs.contact.tracing.CovidTracingAndroidApp;
+import it.cs.contact.tracing.MainActivity;
 
 public class ConTracUtils {
 
@@ -154,12 +157,33 @@ public class ConTracUtils {
             final NotificationManager nm = (NotificationManager) CovidTracingAndroidApp.getAppContext()
                     .getSystemService(Context.NOTIFICATION_SERVICE);
 
-            final Notification not = new NotificationCompat.Builder(CovidTracingAndroidApp.getAppContext(), new Random().nextInt() + "")
-                    .setSmallIcon(androidx.core.R.drawable.notification_bg_low_pressed)
+            final Notification not = new NotificationCompat.Builder(CovidTracingAndroidApp.getAppContext(), "notify_001")
+                    .setSmallIcon(android.R.drawable.alert_light_frame)
                     .setContentTitle("App Tracciamento Contatti")
                     .setContentText(text)
                     .setPriority(NotificationCompat.PRIORITY_HIGH).build();
-            nm.notify(new Random().nextInt(), not);
+            nm.notify(2233, not);
+
+            final NotificationCompat.Builder mBuilder =
+                    new NotificationCompat.Builder(CovidTracingAndroidApp.getAppContext(), "notify_001");
+
+            final Intent ii = new Intent(CovidTracingAndroidApp.getAppContext(), MainActivity.class);
+            final PendingIntent pendingIntent = PendingIntent.getActivity(CovidTracingAndroidApp.getAppContext(), 0, ii, 0);
+
+            mBuilder.setContentIntent(pendingIntent);
+            mBuilder.setSmallIcon(android.R.drawable.alert_light_frame);
+            mBuilder.setContentTitle("Your Title");
+            mBuilder.setContentText("Your text");
+            mBuilder.setPriority(NotificationCompat.PRIORITY_HIGH);
+
+            NotificationChannel channel = new NotificationChannel(
+                    "notify_001",
+                    "Channel human readable title",
+                    NotificationManager.IMPORTANCE_HIGH);
+            nm.createNotificationChannel(channel);
+            mBuilder.setChannelId("dadasdpojpja");
+
+            nm.notify(0, mBuilder.build());
 
         } catch (Exception e) {
             Log.i(COMMON_UTILS, "", e);

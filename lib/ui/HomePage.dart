@@ -17,7 +17,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
   AnimationController animationController;
 
   String imageRisk;
-  String riskZone = "BASSA";
+  String riskZone = "LOW";
   var textRisk = List.filled(3, "", growable: true);
   MaterialColor colorRisk;
 
@@ -52,7 +52,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
   void setHomepage() {
 
     switch (riskZone) {
-      case "BASSA":
+      case "LOW":
         imageRisk = "low.png";
         textRisk[0] = "RISCHIO BASSO";
         textRisk[1] = "Bravo, continua a tenere un comportamento adeguato!";
@@ -60,7 +60,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
         colorRisk = Colors.lightGreen;
         break;
 
-      case "MEDIA":
+      case "MEDIUM":
         imageRisk = "med.png";
         textRisk[0] = "RISCHIO MEDIO";
         textRisk[1] = "Potrebbero esserci dei contatti a rischio.";
@@ -68,7 +68,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
         colorRisk = Colors.amber;
         break;
 
-      case "ALTA":
+      case "HIGH":
         imageRisk = "high.png";
         colorRisk = Colors.red;
         textRisk[0] = "RISCHIO ALTO";
@@ -77,20 +77,20 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
         "Non lasciare la tua abitazione, la richiesta di tampone è stata inviata";
         break;
 
-      case "TAMPONE POSITIVO":
+      case "POSITIVE":
         imageRisk = "high.png";
         colorRisk = Colors.red;
-        textRisk[0] = "POSITIVO";
+        textRisk[0] = "TAMPONE\nPOSITIVO";
         textRisk[1] = "Purtoppo il tuo tampone è positivo.";
         textRisk[2] = "Per assistenza, chiama il tuo medico.";
         break;
 
-      case "TAMPONE NEGATIVO":
+      case "NEGATIVE":
         imageRisk = "low.png";
         colorRisk = Colors.lightGreen;
-        textRisk[0] = "Il tuo tampone è negativo!";
-        textRisk[1] = "Tieni comunque un comportamento adeguato.";
-        textRisk[2] = "";
+        textRisk[0] = "TAMPONE\nNEGATIVO";
+        textRisk[1] = "Il tuo tampone è negativo!";
+        textRisk[2] = "Tieni comunque un comportamento adeguato.";
         break;
     }
   }
@@ -145,7 +145,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: colorRisk,
-                          fontSize: 60,
+                          fontSize: 50,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

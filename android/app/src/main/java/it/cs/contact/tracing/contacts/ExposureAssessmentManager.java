@@ -67,10 +67,9 @@ public class ExposureAssessmentManager implements Runnable {
 
                         Log.w(TAG, "Found positive contac to process: " + dto.getDeviceKey());
 
-                        new DirectContactExposure(myContacts, key)
-                                .run();
+                        CovidTracingAndroidApp.getThreadPool().execute(new DirectContactExposure(myContacts, key));
 
-                        ConTracUtils.wait(10);
+                        ConTracUtils.wait(5);
                     }
                 });
     }
@@ -85,8 +84,8 @@ public class ExposureAssessmentManager implements Runnable {
 
                 Log.w(TAG, "Found second level contac to process: " + dto.getDeviceKey());
 
-                new SecondLevelContactExposure(myContacts, key).run();
-                ConTracUtils.wait(10);
+                CovidTracingAndroidApp.getThreadPool().execute(new SecondLevelContactExposure(myContacts, key));
+                ConTracUtils.wait(5);
             }
         });
     }

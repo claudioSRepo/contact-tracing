@@ -45,13 +45,13 @@ class _StartScreenState extends State<StartScreen> {
         ]),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),
             child: GNav(
                 gap: 5,
                 activeColor: Colors.white,
                 color: Colors.white,
-                iconSize: 30,
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 6),
+                iconSize: 20,
+                padding: EdgeInsets.symmetric(horizontal: 50, vertical: 6),
                 duration: Duration(milliseconds: 400),
                 tabBackgroundColor: Colors.grey[800],
                 tabActiveBorder: Border.all(color: Colors.black, width: 1),

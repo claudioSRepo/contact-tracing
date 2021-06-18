@@ -9,15 +9,15 @@ public enum RiskZone {
         switch (this) {
 
             case LOW:
-                return "BASSA";
+                return "Rischio\nBasso";
             case MEDIUM:
-                return "MEDIA";
+                return "Rischio\nMedio";
             case HIGH:
-                return "ALTA";
+                return "Rischio\nAlto";
             case POSITIVE:
-                return "TAMPONE POSITIVO";
+                return "Tampone\nPositivo";
             case NEGATIVE:
-                return "TAMPONE NEGATIVO";
+                return "Tampone\nNegativo";
             default:
                 return this.toString();
         }
