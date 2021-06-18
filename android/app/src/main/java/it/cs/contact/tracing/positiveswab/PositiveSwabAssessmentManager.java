@@ -36,13 +36,21 @@ public class PositiveSwabAssessmentManager implements Runnable {
         final CurrentRisk currentRisk = CovidTracingAndroidApp.getDb().currentRiskDao().findByKey(InternalConfig.MYSELF);
         Log.i(TAG, "Current risk" + currentRisk);
 
-        if (currentRisk != null && currentRisk.getCalculatedOn().isAfter(ZonedDateTime.now().minusDays(InternalConfig.POSITIVE_SWAB_VALIDITY_DAYS_LENGTH))
+        if (currentRisk != null
+                && currentRisk.getCalculatedOn().isAfter(
+                ZonedDateTime
+                        .now()
+                        .minusDays(InternalConfig.POSITIVE_SWAB_VALIDITY_DAYS_LENGTH))
                 && currentRisk.getRiskZone().equals(RiskZone.POSITIVE)) {
 
             Log.i(TAG, "Positive swab already present.");
 
 
-        } else if (currentRisk != null && currentRisk.getCalculatedOn().isAfter(ZonedDateTime.now().minusDays(InternalConfig.NEGATIVE_SWAB_VALIDITY_DAYS_LENGTH))
+        } else if (currentRisk != null
+                && currentRisk.getCalculatedOn().isAfter(
+                ZonedDateTime
+                        .now()
+                        .minusDays(InternalConfig.NEGATIVE_SWAB_VALIDITY_DAYS_LENGTH))
                 && currentRisk.getRiskZone().equals(RiskZone.NEGATIVE)) {
 
             Log.i(TAG, "Negative swab already present.");
@@ -63,7 +71,8 @@ public class PositiveSwabAssessmentManager implements Runnable {
                 return;
             }
 
-            if (ConTracUtils.numberToDate(dto.getReportedOn()).isAfter(LocalDate.now().minusDays(InternalConfig.POSITIVE_SWAB_VALIDITY_DAYS_LENGTH))
+            if (ConTracUtils.numberToDate(dto.getReportedOn())
+                    .isAfter(LocalDate.now().minusDays(InternalConfig.POSITIVE_SWAB_VALIDITY_DAYS_LENGTH))
                     && dto.getState().equals(SwabDTO.SwabState.POSITIVE)) {
 
                 Log.i(TAG, "Current user has positive swab ");
@@ -71,7 +80,8 @@ public class PositiveSwabAssessmentManager implements Runnable {
                 saveSwabState(dto.getReportedOn(), RiskZone.POSITIVE);
                 signalPositivity();
 
-            } else if (ConTracUtils.numberToDate(dto.getReportedOn()).isAfter(LocalDate.now().minusDays(InternalConfig.NEGATIVE_SWAB_VALIDITY_DAYS_LENGTH))
+            } else if (ConTracUtils.numberToDate(dto.getReportedOn())
+                    .isAfter(LocalDate.now().minusDays(InternalConfig.NEGATIVE_SWAB_VALIDITY_DAYS_LENGTH))
                     && dto.getState().equals(SwabDTO.SwabState.NEGATIVE)) {
 
                 Log.i(TAG, "Current user has negative swab ");
@@ -82,22 +92,32 @@ public class PositiveSwabAssessmentManager implements Runnable {
 
     private void signalPositivity() {
 
-        final String myDevKey = CovidTracingAndroidApp.getDb().configDao().getConfigValue(InternalConfig.TRACING_KEY_PARAM).getValue();
+        final String myDevKey = CovidTracingAndroidApp.getDb()
+                .configDao().getConfigValue(InternalConfig.TRACING_KEY_PARAM).getValue();
 
-        RestClient.getInstance().get(InternalConfig.POSITIVE_CONTACTS_URL, myDevKey, PositiveContactDTO::fromJson, (PositiveContactDTO prec) -> {
+        RestClient.getInstance()
+                .get(InternalConfig.POSITIVE_CONTACTS_URL, myDevKey, PositiveContactDTO::fromJson, (PositiveContactDTO prec) -> {
 
-            if (prec == null || ConTracUtils.numberToDate(prec.getCommunicatedOn()).isBefore(LocalDate.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH))) {
+                    if (prec == null
+                            || ConTracUtils.numberToDate(prec.getCommunicatedOn())
+                            .isBefore(LocalDate.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH))) {
 
-                final RestClient.GenericServiceResource dto = PositiveContactDTO.builder().deviceKey(myDevKey).communicatedOn(ConTracUtils.dateToNumber(LocalDate.now())).build();
+                        final RestClient.GenericServiceResource dto =
+                                PositiveContactDTO.builder()
+                                        .deviceKey(myDevKey)
+                                        .communicatedOn(ConTracUtils.dateToNumber(LocalDate.now()))
+                                        .build();
 
-                Log.d(TAG, "Sending device positivity:  " + dto);
+                        Log.d(TAG, "Sending device positivity:  " + dto);
 
-                RestClient.getInstance().post(InternalConfig.POSITIVE_CONTACTS_URL, dto, PositiveContactDTO::toJson, PositiveContactDTO::fromJson,
-                        ConTracUtils::printSaved);
-            } else {
-                Log.d(TAG, "Positivity already present: " + prec);
-            }
-        });
+                        RestClient.getInstance()
+                                .post(InternalConfig.POSITIVE_CONTACTS_URL, dto,
+                                        PositiveContactDTO::toJson, PositiveContactDTO::fromJson,
+                                        ConTracUtils::printSaved);
+                    } else {
+                        Log.d(TAG, "Positivity already present: " + prec);
+                    }
+                });
     }
 
     private void saveSwabState(final Integer reportedOn, final RiskZone riskZone) {

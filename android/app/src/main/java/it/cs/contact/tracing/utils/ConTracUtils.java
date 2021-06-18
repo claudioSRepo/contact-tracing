@@ -1,6 +1,11 @@
 package it.cs.contact.tracing.utils;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -8,6 +13,9 @@ import org.json.JSONObject;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Random;
+
+import it.cs.contact.tracing.CovidTracingAndroidApp;
 
 public class ConTracUtils {
 
@@ -138,5 +146,25 @@ public class ConTracUtils {
             Log.i(COMMON_UTILS, "", e);
         }
     }
+
+    public static void sendNotification(final String text) {
+
+        try {
+
+            final NotificationManager nm = (NotificationManager) CovidTracingAndroidApp.getAppContext()
+                    .getSystemService(Context.NOTIFICATION_SERVICE);
+
+            final Notification not = new NotificationCompat.Builder(CovidTracingAndroidApp.getAppContext(), new Random().nextInt() + "")
+                    .setSmallIcon(androidx.core.R.drawable.notification_bg_low_pressed)
+                    .setContentTitle("App Tracciamento Contatti")
+                    .setContentText(text)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH).build();
+            nm.notify(new Random().nextInt(), not);
+
+        } catch (Exception e) {
+            Log.i(COMMON_UTILS, "", e);
+        }
+    }
+
 
 }

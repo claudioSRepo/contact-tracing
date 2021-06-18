@@ -42,17 +42,26 @@ public class BleScanner {
 
         final Handler handler = new Handler();
 
-        if (bluetoothLeScanner != null && context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+        if (bluetoothLeScanner != null && context.getPackageManager()
+                .hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
 
             stopIfExists(bluetoothLeScanner);
 
-            final ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).setMatchMode(ScanSettings.MATCH_MODE_STICKY).build();
+            final ScanSettings settings = new ScanSettings.Builder()
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                    .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+                    .build();
 
-            handler.postDelayed(() -> bluetoothLeScanner.stopScan(scanCallback), InternalConfig.BLE_SCAN_PERIOD);
+            handler.postDelayed(() -> bluetoothLeScanner
+                    .stopScan(scanCallback), InternalConfig.BLE_SCAN_PERIOD);
 
             Log.i(TAG, "BLE available, starting scanner...");
 
-            final List<ScanFilter> filters = Collections.singletonList(new ScanFilter.Builder().setServiceUuid(new ParcelUuid(InternalConfig.BLE_ADVERTISE_TRACING_ACTIVE)).build());
+            final List<ScanFilter> filters =
+                    Collections.singletonList(
+                            new ScanFilter.Builder()
+                                    .setServiceUuid(new ParcelUuid(InternalConfig.BLE_ADVERTISE_TRACING_ACTIVE))
+                                    .build());
 
             bluetoothLeScanner.startScan(filters, settings, scanCallback);
 

@@ -4,18 +4,24 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
+import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.Map;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.stream.Collectors;
 
 import io.flutter.plugin.common.MethodChannel;
 import it.cs.contact.tracing.CovidTracingAndroidApp;
-import it.cs.contact.tracing.api.client.RestClient;
-import it.cs.contact.tracing.api.dto.PositiveContactDTO;
 import it.cs.contact.tracing.config.InternalConfig;
 import it.cs.contact.tracing.model.entity.CurrentRisk;
+import it.cs.contact.tracing.model.enums.RiskType;
 import it.cs.contact.tracing.model.enums.RiskZone;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import static it.cs.contact.tracing.utils.ConTracUtils.put;
@@ -23,7 +29,27 @@ import static it.cs.contact.tracing.utils.ConTracUtils.put;
 public class UiRiskProvider {
 
     private static final String TAG = "UiRiskProvider";
-    
+
+    private static final String PATTERN_HOUR = "HH:mm";
+
+    public static final MethodChannel.MethodCallHandler getRiskSummaryHandler = (call, result) -> {
+
+        Log.d(TAG, "Method channel, called:  " + call.method);
+
+        switch (call.method) {
+
+            case "getSummaryRisk":
+                result.success(UiRiskProvider.getRiskDetail().getRiskZone());
+                break;
+            case "getRiskDetail":
+                result.success(UiRiskProvider.getRiskDetail().toJson());
+                break;
+            default:
+                result.notImplemented();
+                break;
+        }
+    };
+
     private static UiRiskDto getRiskDetail() {
 
         //CHECK IF SWABBED (POSITIVE/NEGATIVE)
@@ -34,98 +60,164 @@ public class UiRiskProvider {
         if (currentRisk != null && currentRisk.getCalculatedOn().isAfter(ZonedDateTime.now().minusDays(InternalConfig.POSITIVE_SWAB_VALIDITY_DAYS_LENGTH))
                 && currentRisk.getRiskZone().equals(RiskZone.POSITIVE)) {
 
-            return createPositiveResult(currentRisk);
-
+            Log.d(TAG, "Create positive risk result.");
+            return createSwabResult(currentRisk);
 
         } else if (currentRisk != null && currentRisk.getCalculatedOn().isAfter(ZonedDateTime.now().minusDays(InternalConfig.NEGATIVE_SWAB_VALIDITY_DAYS_LENGTH))
                 && currentRisk.getRiskZone().equals(RiskZone.NEGATIVE)) {
 
-            return createNegativeResult(currentRisk);
+            Log.d(TAG, "Create negative risk result.");
+            return createSwabResult(currentRisk);
         }
 
         //CHECK TRACING ...
-
         final List<CurrentRisk> risks = CovidTracingAndroidApp.getDb().currentRiskDao().findFrom(ZonedDateTime.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH));
-        
-        if(risks != null ) {
 
-            //If positive
-            Optional<CurrentRisk> foundPositive = risks.stream().filter(UiRiskProvider::checkIfOnePositive).findFirst();
-            
-            if(foundPositive.isPresent()) {
+        if (risks != null && !risks.isEmpty()) {
 
-            }
-            
-            //If not positive
-            
+            Log.d(TAG, "Create standard risk result.");
+
+            final BigDecimal[] riskValueSum = {BigDecimal.ZERO};
+            final BigDecimal[] timeSpentWithPC = {BigDecimal.ZERO};
+            final BigDecimal[] timeSpentWithSLC = {BigDecimal.ZERO};
+            final LongAdder numberOfContacts = new LongAdder();
+            final ZonedDateTime[] calculatedOn = {ZonedDateTime.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH)};
+
+            final Map<RiskType, List<CurrentRisk>> collectedByType =
+                    risks.stream().collect(Collectors.groupingBy(CurrentRisk::getType));
+
+            collectedByType.getOrDefault(RiskType.DIRECT_CONTACT, Collections.emptyList()).forEach(risk -> {
+
+                riskValueSum[0] = riskValueSum[0].add(risk.getTotalRisk());
+                timeSpentWithPC[0] = timeSpentWithPC[0].add(risk.getTotalExpositionTime());
+                calculatedOn[0] = calculatedOn[0].isAfter(risk.getCalculatedOn()) ? calculatedOn[0] : risk.getCalculatedOn();
+                numberOfContacts.add(1);
+            });
+
+            collectedByType.getOrDefault(RiskType.SL_CONTACT, Collections.emptyList()).forEach(risk -> {
+
+                riskValueSum[0] = riskValueSum[0].add(risk.getTotalRisk());
+                timeSpentWithSLC[0] = timeSpentWithSLC[0].add(risk.getTotalExpositionTime());
+                calculatedOn[0] = calculatedOn[0].isAfter(risk.getCalculatedOn()) ? calculatedOn[0] : risk.getCalculatedOn();
+                numberOfContacts.add(1);
+            });
+
+            return createRiskResult(riskValueSum[0], timeSpentWithPC[0], timeSpentWithSLC[0],
+                    numberOfContacts.longValue(), calculatedOn[0]);
         }
-        
-        
-        return new UiRiskDto().toJson();
+
+        Log.d(TAG, "No current risk found.");
+
+        return UiRiskDto.builder().build();
     }
 
-    private static UiRiskDto createNegativeResult(CurrentRisk currentRisk) {
+    private static UiRiskDto createRiskResult(final BigDecimal riskValueSum, final BigDecimal timeSpentWithPC,
+                                              final BigDecimal timeSpentWithSLC, final long numberOfContacts,
+                                              final ZonedDateTime calculatedOn) {
+
+        return UiRiskDto.builder()
+                .riskValue(riskValueSum.toPlainString())
+
+                .riskZone(evaluateRiskZone(riskValueSum))
+                .riskZoneThumbUp(evaluateRiskZoneThumbUp(riskValueSum))
+                .riskPercentage(evaluatePercentage(riskValueSum))
+                .timeSpentWithPC(timeSpentWithPC.toPlainString())
+                .timeSpentWithPCThumbUp(timeSpentWithPC.compareTo(BigDecimal.ZERO) == 0)
+                .timeSpentWithSLC(timeSpentWithSLC.toPlainString())
+                .timeSpentWithSLCThumbUp(timeSpentWithSLC.compareTo(BigDecimal.ZERO) == 0)
+                .numberOfContacts(String.valueOf(numberOfContacts))
+                .numberOfContactsThumbUp(numberOfContacts == 0)
+                .calculatedOnDate(DateTimeFormatter.ISO_LOCAL_DATE.format(calculatedOn))
+                .calculatedOnTime(DateTimeFormatter.ofPattern(PATTERN_HOUR).format(calculatedOn))
+                .build();
     }
 
-    private static UiRiskDto createPositiveResult(final CurrentRisk currentRisk) {
+    private static UiRiskDto createSwabResult(final CurrentRisk currentRisk) {
+
+        return UiRiskDto.builder()
+                .riskZone(currentRisk.getRiskZone().toString())
+                .riskZoneThumbUp(!currentRisk.getRiskZone().equals(RiskZone.POSITIVE))
+                .riskPercentage(currentRisk.getRiskZone().equals(RiskZone.POSITIVE) ? 99 : 0)
+                .riskValue(currentRisk.getRiskZone().equals(RiskZone.POSITIVE) ? "MAX" : "0")
+                .timeSpentWithPCThumbUp(!currentRisk.getRiskZone().equals(RiskZone.POSITIVE))
+                .timeSpentWithSLCThumbUp(!currentRisk.getRiskZone().equals(RiskZone.POSITIVE))
+                .numberOfContactsThumbUp(!currentRisk.getRiskZone().equals(RiskZone.POSITIVE))
+                .calculatedOnDate(DateTimeFormatter.ISO_LOCAL_DATE.format(currentRisk.getCalculatedOn()))
+                .calculatedOnTime(DateTimeFormatter.ofPattern(PATTERN_HOUR).format(currentRisk.getCalculatedOn()))
+                .swabDoneOnDate(DateTimeFormatter.ISO_LOCAL_DATE.format(currentRisk.getSwabbedOn()))
+                .build();
     }
 
-    public static final MethodChannel.MethodCallHandler getRiskSummaryHandler = (call, result) -> {
+    private static int evaluatePercentage(final BigDecimal riskValueSum) {
 
-        Log.d(TAG, "Method channel, called:  " + call.method);
+        double val = riskValueSum.doubleValue() / (double) InternalConfig.RISK_MAX_VAL;
+        int percentage = val < 1 ? (int) (val * 100) : 99;
 
-        switch (call.method) {
+        Log.d(TAG, "From " + riskValueSum + " , percentage: " + percentage);
+        return percentage;
+    }
 
-            case "getSummaryRisk":
-                result.success(UiRiskProvider.getSummaryRisk());
-                break;
-            case "getRiskDetail":
-                result.success(UiRiskProvider.getRiskDetail());
-                break;
-            default:
-                result.notImplemented();
-                break;
-        }
-    };
+    private static String evaluateRiskZone(final BigDecimal riskValueSum) {
+
+        return InternalConfig.RISK_ZONE_MAP.floorEntry(riskValueSum.intValue()).getValue().toIta();
+    }
+
+    private static boolean evaluateRiskZoneThumbUp(final BigDecimal riskValueSum) {
+
+        return evaluateRiskZone(riskValueSum).equalsIgnoreCase(RiskZone.LOW.toString());
+    }
+
 
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Getter
     static class UiRiskDto {
 
-        private String riskValue = "35";
+        @Builder.Default
+        private final String riskValue = "0";
 
-        private int riskPercentage = 70;
+        @Builder.Default
+        private final int riskPercentage = 0;
 
-        private String riskZone = "ALTA";
+        @Builder.Default
+        private final String riskZone = "ND";
 
-        private String timeSpentWithPC = "20";
+        @Builder.Default
+        private final String timeSpentWithPC = "0";
 
-        private String timeSpentWithSLC = "21";
+        @Builder.Default
+        private final String timeSpentWithSLC = "0";
 
-        private String numberOfContacts = "12";
+        @Builder.Default
+        private final String numberOfContacts = "0";
 
-        private String calculatedOnDate = "31/99/9999";
+        @Builder.Default
+        private final String calculatedOnDate = "ND";
 
-        private String calculatedOnTime = "12:38";
+        @Builder.Default
+        private final String calculatedOnTime = "ND";
 
-        private String swabDoneOnDate = "30/99/9999";
+        @Builder.Default
+        private final String swabDoneOnDate = "ND";
 
-        private boolean riskValueThumbUp = true;
+        @Builder.Default
+        private final boolean riskValueThumbUp = true;
 
-        private boolean riskPercentageOThumbUp = true;
+        @Builder.Default
+        private final boolean riskPercentageOThumbUp = true;
 
-        private boolean riskZoneThumbUp = true;
+        @Builder.Default
+        private final boolean riskZoneThumbUp = true;
 
-        private boolean timeSpentWithPCThumbUp = false;
+        @Builder.Default
+        private final boolean timeSpentWithPCThumbUp = true;
 
-        private boolean timeSpentWithSLCThumbUp = false;
+        @Builder.Default
+        private final boolean timeSpentWithSLCThumbUp = true;
 
-        private boolean numberOfContactsThumbUp = false;
-
-        private boolean calculatedOnDateThumbUp = false;
-
-        private boolean calculatedOnTimeThumbUp = false;
-
-        private boolean swabDoneOnDateThumbUp = true;
+        @Builder.Default
+        private final boolean numberOfContactsThumbUp = true;
 
         public String toJson() {
 
@@ -147,9 +239,6 @@ public class UiRiskProvider {
             put(o, "timeSpentWithPCThumbUp", timeSpentWithPCThumbUp);
             put(o, "timeSpentWithSLCThumbUp", timeSpentWithSLCThumbUp);
             put(o, "numberOfContactsThumbUp", numberOfContactsThumbUp);
-            put(o, "calculatedOnDateThumbUp", calculatedOnDateThumbUp);
-            put(o, "calculatedOnTimeThumbUp", calculatedOnTimeThumbUp);
-            put(o, "swabDoneOnDateThumbUp", swabDoneOnDateThumbUp);
 
             return o.toString();
         }

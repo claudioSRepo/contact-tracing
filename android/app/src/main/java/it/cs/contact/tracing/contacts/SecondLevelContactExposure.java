@@ -20,6 +20,7 @@ import it.cs.contact.tracing.model.entity.RiskEvalTracing;
 import it.cs.contact.tracing.model.enums.ContactType;
 import it.cs.contact.tracing.model.enums.RiskType;
 import it.cs.contact.tracing.model.enums.RiskZone;
+import it.cs.contact.tracing.utils.ConTracUtils;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
@@ -103,6 +104,10 @@ public class SecondLevelContactExposure implements Runnable {
                 .type(RiskType.SL_CONTACT).build();
 
         CovidTracingAndroidApp.getDb().currentRiskDao().insert(riskEntity);
+
+        if (!riskEntity.getRiskZone().equals(RiskZone.LOW)) {
+            ConTracUtils.sendNotification("E' stato rilevato un rischio di contagio. Entra nell'App.");
+        }
 
         Log.i(TAG, "Total risk value:" + totalRiskSum.get());
     }

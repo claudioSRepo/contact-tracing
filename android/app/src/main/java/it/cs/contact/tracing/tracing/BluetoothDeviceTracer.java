@@ -19,26 +19,23 @@ import it.cs.contact.tracing.wifi.WifiUtils;
 import static it.cs.contact.tracing.config.InternalConfig.BL_SCAN_SCHEDULING_OFFSET;
 import static it.cs.contact.tracing.config.InternalConfig.MIDDLE_RSSI;
 import static it.cs.contact.tracing.config.InternalConfig.MIN_EXPOSURE_TRACING;
+import static it.cs.contact.tracing.config.InternalConfig.N_ENV_FACTOR;
 
 public class BluetoothDeviceTracer {
 
     public static final String TAG = "BluetoothDeviceTracer";
 
-    private static final double N = 2;
-
-    private static BigDecimal MINUTES_FROM_LAST_SCAN = BigDecimal.valueOf(BL_SCAN_SCHEDULING_OFFSET).
+    private static final BigDecimal MINUTES_FROM_LAST_SCAN = BigDecimal.valueOf(BL_SCAN_SCHEDULING_OFFSET).
             divide(new BigDecimal("60000"), 1, RoundingMode.HALF_UP);
 
     public static void trace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
 
-        CovidTracingAndroidApp.getThreadPool().execute(() -> new BluetoothDeviceTracer().runAsyncTrace(rawDevice, deviceKey, rssiSignalStrength, blType));
+        CovidTracingAndroidApp.getThreadPool().execute(
+                () -> new BluetoothDeviceTracer().runAsyncTrace(rawDevice, deviceKey, rssiSignalStrength, blType));
         ConTracUtils.wait(1);
     }
 
     private void runAsyncTrace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
-
-
-        DeviceTrace deviceTrace = CovidTracingAndroidApp.getDb().deviceTraceDao().findByKey(deviceKey, blType);
 
         final BigDecimal estimatedDistance = getDistance(rssiSignalStrength);
         final boolean indoor = WifiUtils.isDeviceConnectedToWifi();
@@ -48,36 +45,16 @@ public class BluetoothDeviceTracer {
         if (exposure.compareTo(BigDecimal.valueOf(MIN_EXPOSURE_TRACING)) >= 0) {
 
             insert(toDeviceEntity(rssiSignalStrength, deviceKey, rawDevice, blType, estimatedDistance, exposure, indoor, noise));
-//            if (deviceTrace != null) {
-//
-//                update(prepareUpdate(deviceTrace, rssiSignalStrength, estimatedDistance, exposure));
-//
-//            } else {
-//                insert(toDeviceEntity(rssiSignalStrength, deviceKey, rawDevice, blType, hash, estimatedDistance, exposure));
-//            }
         }
-    }
-
-    private DeviceTrace prepareUpdate(final DeviceTrace deviceTrace, final int rssiSignalStrength, final BigDecimal estimatedDistance, final BigDecimal exposure) {
-
-        deviceTrace.setDistanceSum(deviceTrace.getDistanceSum().add(estimatedDistance));
-        deviceTrace.setSignalStrengthSum(deviceTrace.getSignalStrengthSum() + rssiSignalStrength);
-        deviceTrace.setExposure(deviceTrace.getExposure().add(exposure));
-        deviceTrace.setExpositionTime(deviceTrace.getExpositionTime().add(MINUTES_FROM_LAST_SCAN));
-        deviceTrace.setUpdateVersion(deviceTrace.getUpdateVersion() + 1);
-        deviceTrace.setTimestamp(ZonedDateTime.now());
-
-        return deviceTrace;
     }
 
     private DeviceTrace toDeviceEntity(final int rssi, final String deviceKey, final BluetoothDevice deviceObj, final BlType blType,
                                        final BigDecimal estimatedDistance, final BigDecimal exposure, final boolean wifi, final DecibelMeter.Noise noise) {
-        final String macAddress = deviceObj.getAddress();
 
         return DeviceTrace.builder()
                 .deviceKey(deviceKey)
-                .signalStrengthSum(rssi)
-                .distanceSum(estimatedDistance)
+                .signalStrength(rssi)
+                .distance(estimatedDistance)
                 .updateVersion(1)
                 .exposure(exposure)
                 .expositionTime(MINUTES_FROM_LAST_SCAN)
@@ -119,17 +96,20 @@ public class BluetoothDeviceTracer {
 
     private BigDecimal getDistance(final int rssi) {
 
-        return BigDecimal.valueOf(Math.pow(10, (MIDDLE_RSSI - rssi) / (N * 10)));
+        final BigDecimal distance = BigDecimal.valueOf(Math.pow(10, (MIDDLE_RSSI - rssi) / (N_ENV_FACTOR * 10)));
+
+        return distance.max(InternalConfig.MIN_DISTANCE).min(InternalConfig.MAX_DISTANCE);
     }
 
     private BigDecimal getExposure(final BigDecimal distance, final boolean deviceConnectedToWifi, final DecibelMeter.Noise noise) {
 
         final BigDecimal indoorMultiplier = deviceConnectedToWifi ? new BigDecimal("4") : BigDecimal.ONE;
         final BigDecimal noiseMultiplier = InternalConfig.NOISE_MULTIPLIER_MAP.get(noise);
-        final BigDecimal adjustedDistance = distance.max(InternalConfig.MIN_DISTANCE);
 
-        return MINUTES_FROM_LAST_SCAN.
-                divide(adjustedDistance, 1, RoundingMode.HALF_UP).
-                multiply(indoorMultiplier).multiply(noiseMultiplier);
+        return MINUTES_FROM_LAST_SCAN
+                .multiply(new BigDecimal("10"))
+                .multiply(indoorMultiplier)
+                .multiply(noiseMultiplier)
+                .divide(distance, 1, RoundingMode.HALF_UP);
     }
 }

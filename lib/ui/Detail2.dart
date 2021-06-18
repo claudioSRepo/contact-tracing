@@ -85,7 +85,7 @@ class _Detail2 extends State<Detail2> {
                                             mainAxisAlignment:
                                             MainAxisAlignment.center,
                                             crossAxisAlignment:
-                                            CrossAxisAlignment.end,
+                                            CrossAxisAlignment.center,
                                             children: <Widget>[
                                               SizedBox(
                                                 width: 28,
@@ -143,7 +143,7 @@ class _Detail2 extends State<Detail2> {
                                             padding: const EdgeInsets.only(
                                                 left: 4, bottom: 7),
                                             child: Text(
-                                              'Tempo passato con\n contatti positivi',
+                                              'Minuti trascorsi con\n contatti positivi',
                                               textAlign: TextAlign.right,
                                               style: TextStyle(
                                                   fontWeight: FontWeight.w500,
@@ -156,7 +156,7 @@ class _Detail2 extends State<Detail2> {
                                             mainAxisAlignment:
                                             MainAxisAlignment.center,
                                             crossAxisAlignment:
-                                            CrossAxisAlignment.end,
+                                            CrossAxisAlignment.center,
                                             children: <Widget>[
                                               SizedBox(
                                                 width: 28,
@@ -229,7 +229,7 @@ class _Detail2 extends State<Detail2> {
                                             mainAxisAlignment:
                                             MainAxisAlignment.center,
                                             crossAxisAlignment:
-                                            CrossAxisAlignment.end,
+                                            CrossAxisAlignment.center,
                                             children: <Widget>[
                                               SizedBox(
                                                 width: 28,
@@ -289,7 +289,7 @@ class _Detail2 extends State<Detail2> {
                                             padding: const EdgeInsets.only(
                                                 left: 4, bottom: 7),
                                             child: Text(
-                                              'Tempo passato con\n contatti a rischio',
+                                              'Minuti trascorsi con\n contatti a rischio',
                                               textAlign: TextAlign.right,
                                               style: TextStyle(
                                                   fontWeight: FontWeight.w500,
@@ -302,7 +302,7 @@ class _Detail2 extends State<Detail2> {
                                             mainAxisAlignment:
                                             MainAxisAlignment.center,
                                             crossAxisAlignment:
-                                            CrossAxisAlignment.end,
+                                            CrossAxisAlignment.center,
                                             children: <Widget>[
                                               SizedBox(
                                                 width: 28,
@@ -368,7 +368,7 @@ class _Detail2 extends State<Detail2> {
                                         Text(
                                           riskItem != null
                                               ? riskItem["riskValue"]
-                                              : 'ND',
+                                              : '0',
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontSize: 24,
@@ -393,19 +393,19 @@ class _Detail2 extends State<Detail2> {
                                   padding: const EdgeInsets.all(4.0),
                                   child: CustomPaint(
                                     painter: CurvePainter(
+
                                         colors: [
                                           Colors.orange.shade100,
                                           Colors.red.shade500,
                                           new Color(0xFF971C1C),
                                         ],
-                                        angle: 360 *
+                                        angle: (3.60 *
                                             (riskItem != null
-                                                ? riskItem["riskPercentage"]
-                                                : 0) /
-                                            100),
+                                                ? 0//riskItem["riskPercentage"]
+                                                : 0))),
                                     child: SizedBox(
-                                      width: 108,
-                                      height: 108,
+                                      width: 105,
+                                      height: 105,
                                     ),
                                   ),
                                 )

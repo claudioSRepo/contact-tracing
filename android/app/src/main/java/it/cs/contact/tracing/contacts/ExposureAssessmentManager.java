@@ -31,7 +31,7 @@ public class ExposureAssessmentManager implements Runnable {
 
         Log.i(TAG, "start Periodic risk Assertion.");
 
-        // Retrieve my contacts with 20 day of depth
+        // Retrieve my contacts with N days of depth
         final ConcurrentMap<String, List<DeviceTrace>> myContacts = retrieveMyContacts();
 
         Log.d(TAG, "My contacts retrieved: " + myContacts.size());
@@ -55,19 +55,24 @@ public class ExposureAssessmentManager implements Runnable {
 
     private void processIfPositiveContact(final String key, final ConcurrentMap<String, List<DeviceTrace>> myContacts) {
 
-        RestClient.getInstance().get(InternalConfig.POSITIVE_CONTACTS_URL, key, PositiveContactDTO::fromJson, (PositiveContactDTO dto) -> {
+        RestClient.getInstance().get(InternalConfig.POSITIVE_CONTACTS_URL, key,
+                PositiveContactDTO::fromJson, (PositiveContactDTO dto) -> {
 
-            Log.d(TAG, "Processing pc:  " + dto);
+                    Log.d(TAG, "Processing pc:  " + dto);
 
-            if (dto != null && ConTracUtils.numberToDate(dto.getCommunicatedOn()).isAfter(LocalDate.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH))) {
+                    if (dto != null
+                            && ConTracUtils.numberToDate(dto.getCommunicatedOn()).isAfter(
+                            LocalDate.now()
+                                    .minusDays(InternalConfig.TRACING_DAYS_LENGTH))) {
 
-                Log.w(TAG, "Found positive contac to process: " + dto.getDeviceKey());
+                        Log.w(TAG, "Found positive contac to process: " + dto.getDeviceKey());
 
-                new DirectContactExposure(myContacts, key).run();
+                        new DirectContactExposure(myContacts, key)
+                                .run();
 
-                ConTracUtils.wait(10);
-            }
-        });
+                        ConTracUtils.wait(10);
+                    }
+                });
     }
 
     private void processIfSecondLevelContact(final String key, final ConcurrentMap<String, List<DeviceTrace>> myContacts) {

@@ -46,7 +46,7 @@ public class BlForegroundService extends Service {
         super.onCreate();
 
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "messages").
-                setContentText("L'applicazione è correttamente in esecuzione (version 22/04 - 13:10)").
+                setContentText("L'applicazione funziona correttamente.").
                 setContentTitle("App Tracciamento Contatti").
                 setOngoing(true).
                 setSmallIcon(android.R.drawable.ic_menu_mylocation);

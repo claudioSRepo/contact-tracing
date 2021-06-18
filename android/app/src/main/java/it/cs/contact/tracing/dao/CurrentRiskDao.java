@@ -20,7 +20,7 @@ public interface CurrentRiskDao {
     @Query("SELECT * FROM CurrentRisk WHERE device_key = :deviceKey LIMIT 1")
     CurrentRisk findByKey(final String deviceKey);
 
-    @Query("SELECT * FROM CurrentRisk WHERE date(calculated_on) >= :from")
+    @Query("SELECT * FROM CurrentRisk WHERE calculated_on >= :from")
     List<CurrentRisk> findFrom(final ZonedDateTime from);
 
     @Update

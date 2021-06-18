@@ -17,7 +17,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
   AnimationController animationController;
 
   String imageRisk;
-  String riskZone = "LOW";
+  String riskZone = "BASSA";
   var textRisk = List.filled(3, "", growable: true);
   MaterialColor colorRisk;
 
@@ -50,8 +50,9 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
   }
 
   void setHomepage() {
+
     switch (riskZone) {
-      case "LOW":
+      case "BASSA":
         imageRisk = "low.png";
         textRisk[0] = "RISCHIO BASSO";
         textRisk[1] = "Bravo, continua a tenere un comportamento adeguato!";
@@ -59,7 +60,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
         colorRisk = Colors.lightGreen;
         break;
 
-      case "MEDIUM":
+      case "MEDIA":
         imageRisk = "med.png";
         textRisk[0] = "RISCHIO MEDIO";
         textRisk[1] = "Potrebbero esserci dei contatti a rischio.";
@@ -67,7 +68,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
         colorRisk = Colors.amber;
         break;
 
-      case "HIGH":
+      case "ALTA":
         imageRisk = "high.png";
         colorRisk = Colors.red;
         textRisk[0] = "RISCHIO ALTO";
@@ -76,20 +77,20 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
         "Non lasciare la tua abitazione, la richiesta di tampone è stata inviata";
         break;
 
-      case "POSITIVE":
-        imageRisk = "mask.png";
+      case "TAMPONE POSITIVO":
+        imageRisk = "high.png";
         colorRisk = Colors.red;
         textRisk[0] = "POSITIVO";
         textRisk[1] = "Purtoppo il tuo tampone è positivo.";
         textRisk[2] = "Per assistenza, chiama il tuo medico.";
         break;
 
-      case "IMMUNE":
-        imageRisk = "sneeze.png";
+      case "TAMPONE NEGATIVO":
+        imageRisk = "low.png";
         colorRisk = Colors.lightGreen;
-        textRisk[0] = "SEI IMMUNE!";
-        textRisk[1] = "Sei stato vaccinato o hai già passato il covid.";
-        textRisk[2] = "Tieni comunque un comportamento adeguato";
+        textRisk[0] = "Il tuo tampone è negativo!";
+        textRisk[1] = "Tieni comunque un comportamento adeguato.";
+        textRisk[2] = "";
         break;
     }
   }

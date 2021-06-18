@@ -26,11 +26,11 @@ public class DeviceTrace {
     @ColumnInfo(name = "device_key")
     private String deviceKey;
 
-    @ColumnInfo(name = "signal_strength_sum")
-    private int signalStrengthSum;
+    @ColumnInfo(name = "signal_strength")
+    private int signalStrength;
 
-    @ColumnInfo(name = "distance_sum")
-    private BigDecimal distanceSum;
+    @ColumnInfo(name = "distance")
+    private BigDecimal distance;
 
     @ColumnInfo(name = "update_version")
     private int updateVersion;

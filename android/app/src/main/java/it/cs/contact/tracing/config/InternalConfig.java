@@ -20,19 +20,22 @@ public interface InternalConfig {
     //Scanning
     long BL_FIRST_SCAN = 5000;
     long BL_SCAN_SCHEDULING_OFFSET = AlarmManager.INTERVAL_HOUR / 60 * 2;
-    long BLE_SCAN_PERIOD = BL_SCAN_SCHEDULING_OFFSET / 4;
+    long BLE_SCAN_PERIOD = BL_SCAN_SCHEDULING_OFFSET / 2;
     long BLE_RESTART_SERVER = 3600000 / 4;
     long EXPOSURE_ASSESSMENT_SCHEDULING = AlarmManager.INTERVAL_HOUR;
 
     //Risk Eval
+    int RISK_MAX_VAL = 1000;
     NavigableMap<Integer, RiskZone> RISK_ZONE_MAP = MapUtils.toNavigableMap(Stream.of(
             entry(0, RiskZone.LOW),
-            entry(100, RiskZone.MEDIUM),
-            entry(1000, RiskZone.HIGH)).collect(entriesToMap()));
+            entry(150, RiskZone.MEDIUM),
+            entry(RISK_MAX_VAL, RiskZone.HIGH)).collect(entriesToMap()));
 
     //Distance calc
-    double MIDDLE_RSSI = -65;
+    double MIDDLE_RSSI = -74;
+    double N_ENV_FACTOR = 4;
     BigDecimal MIN_DISTANCE = new BigDecimal("2");
+    BigDecimal MAX_DISTANCE = new BigDecimal("10");
 
     //Exchange Keys
     UUID BLE_ADVERTISE_TRACING_ACTIVE = UUID.fromString("fb290d48-77a2-4324-ba16-d337e1d7c2b8");

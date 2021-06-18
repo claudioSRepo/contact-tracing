@@ -136,7 +136,7 @@ public class BleGattServer implements Runnable {
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
                 .setConnectable(true)
                 .setTimeout(0)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_LOW)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
                 .build();
 
         final AdvertiseData data = new AdvertiseData.Builder()
