@@ -80,7 +80,7 @@ public class PositiveSwabAssessmentManager implements Runnable {
                 saveSwabState(dto.getReportedOn(), RiskZone.POSITIVE);
                 signalPositivity();
 
-                ConTracUtils.sendNotification("Il tuo tampone è positivo!");
+                ConTracUtils.sendNotification("Il tuo tampone è positivo! Entra nell'App.");
 
             } else if (ConTracUtils.numberToDate(dto.getReportedOn())
                     .isAfter(LocalDate.now().minusDays(InternalConfig.NEGATIVE_SWAB_VALIDITY_DAYS_LENGTH))
@@ -89,7 +89,7 @@ public class PositiveSwabAssessmentManager implements Runnable {
                 Log.i(TAG, "Current user has negative swab ");
                 saveSwabState(dto.getReportedOn(), RiskZone.NEGATIVE);
 
-                ConTracUtils.sendNotification("Il tuo tampone è negativo!");
+                ConTracUtils.sendNotification("Il tuo tampone è negativo! Entra nell'App.");
             }
         });
     }

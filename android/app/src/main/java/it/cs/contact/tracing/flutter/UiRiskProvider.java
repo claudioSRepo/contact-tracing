@@ -8,11 +8,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Collectors;
 
@@ -84,13 +87,17 @@ public class UiRiskProvider {
             final BigDecimal[] riskValueSum = {BigDecimal.ZERO};
             final BigDecimal[] timeSpentWithPC = {BigDecimal.ZERO};
             final BigDecimal[] timeSpentWithSLC = {BigDecimal.ZERO};
+            final Set<String> directContactKeys = new HashSet<>();
             final LongAdder numberOfContacts = new LongAdder();
             final ZonedDateTime[] calculatedOn = {ZonedDateTime.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH)};
 
             final Map<RiskType, List<CurrentRisk>> collectedByType =
                     risks.stream().collect(Collectors.groupingBy(CurrentRisk::getType));
 
+
             collectedByType.getOrDefault(RiskType.DIRECT_CONTACT, Collections.emptyList()).forEach(risk -> {
+
+                directContactKeys.add(risk.getDeviceKey());
 
                 riskValueSum[0] = riskValueSum[0].add(risk.getTotalRisk());
                 timeSpentWithPC[0] = timeSpentWithPC[0].add(risk.getTotalExpositionTime());
@@ -100,10 +107,13 @@ public class UiRiskProvider {
 
             collectedByType.getOrDefault(RiskType.SL_CONTACT, Collections.emptyList()).forEach(risk -> {
 
-                riskValueSum[0] = riskValueSum[0].add(risk.getTotalRisk());
-                timeSpentWithSLC[0] = timeSpentWithSLC[0].add(risk.getTotalExpositionTime());
-                calculatedOn[0] = calculatedOn[0].isAfter(risk.getCalculatedOn()) ? calculatedOn[0] : risk.getCalculatedOn();
-                numberOfContacts.add(1);
+                if (!directContactKeys.contains(risk.getDeviceKey())) {
+
+                    riskValueSum[0] = riskValueSum[0].add(risk.getTotalRisk());
+                    timeSpentWithSLC[0] = timeSpentWithSLC[0].add(risk.getTotalExpositionTime());
+                    calculatedOn[0] = calculatedOn[0].isAfter(risk.getCalculatedOn()) ? calculatedOn[0] : risk.getCalculatedOn();
+                    numberOfContacts.add(1);
+                }
             });
 
             return createRiskResult(riskValueSum[0], timeSpentWithPC[0], timeSpentWithSLC[0],
@@ -111,19 +121,19 @@ public class UiRiskProvider {
         }
 
         Log.d(TAG, "No current risk found.");
-        sendNotification("test");
-        return UiRiskDto.builder()
-                .calculatedOnDate(DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDateTime.now()))
-                .calculatedOnTime(DateTimeFormatter.ofPattern(PATTERN_HOUR).format(LocalDateTime.now()))
-                .build();
+
+//        return UiRiskDto.builder()
+//                .calculatedOnDate(DateTimeFormatter.ISO_LOCAL_DATE.format(LocalDateTime.now()))
+//                .calculatedOnTime(DateTimeFormatter.ofPattern(PATTERN_HOUR).format(LocalDateTime.now()))
+//                .build();
 
         //MIN
-//        return createRiskResult(new BigDecimal("100"), new BigDecimal("0"), new BigDecimal("0"),
-//                0, ZonedDateTime.now());
+        //return createRiskResult(new BigDecimal("50"), new BigDecimal("0"), new BigDecimal("5"),
+              //  0, ZonedDateTime.of(2021, 06, 20, 19, 15, 20 , 0 , ZoneId.systemDefault()));
 
         //MED
-//        return createRiskResult(new BigDecimal("400"), new BigDecimal("30"), new BigDecimal("30"),
-//                2, ZonedDateTime.now());
+         return createRiskResult(new BigDecimal("240"), new BigDecimal("5"), new BigDecimal("0"),
+                1, ZonedDateTime.of(2021, 06, 20, 19, 15, 20 , 0 , ZoneId.systemDefault()));
 
         //MAX
 //        return createRiskResult(new BigDecimal("1001"), new BigDecimal("45"), new BigDecimal("45"),

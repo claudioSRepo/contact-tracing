@@ -13,11 +13,13 @@ import it.cs.contact.tracing.model.enums.BlType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.ToString;
 
 @Data
 @Builder
 @Entity
 @AllArgsConstructor
+@ToString
 public class DeviceTrace {
 
     @PrimaryKey(autoGenerate = true)

@@ -9,7 +9,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
-
   static const platform = const MethodChannel('it.cs.contact.tracing/getRisk');
 
   Animation virusBounce;
@@ -50,12 +49,11 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
   }
 
   void setHomepage() {
-
     switch (riskZone) {
       case "LOW":
         imageRisk = "low.png";
         textRisk[0] = "RISCHIO BASSO";
-        textRisk[1] = "Bravo, continua a tenere un comportamento adeguato!";
+        textRisk[1] = "Ottimo! Continua a tenere un comportamento adeguato!";
         textRisk[2] = "";
         colorRisk = Colors.lightGreen;
         break;
@@ -72,7 +70,7 @@ class _HomePage extends State<HomePage> with SingleTickerProviderStateMixin {
         imageRisk = "high.png";
         colorRisk = Colors.red;
         textRisk[0] = "RISCHIO ALTO";
-        textRisk[1] = "Alcuni contatti sono risultati positivi!";
+        textRisk[1] = "Alcuni tuoi contatti sono risultati positivi!";
         textRisk[2] =
         "Non lasciare la tua abitazione, la richiesta di tampone è stata inviata";
         break;

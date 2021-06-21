@@ -73,6 +73,8 @@ public class BluetoothDeviceTracer {
         try {
             CovidTracingAndroidApp.getDb().deviceTraceDao().insert(device);
 
+            ConTracUtils.sendNotification("Nuovo device tracciato: " + device.toString());
+
         } catch (final Exception e) {
             Log.e(TAG, "Error saving data for device" + device.getDeviceKey(), e);
         }
