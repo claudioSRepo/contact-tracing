@@ -100,28 +100,29 @@ public class PositiveSwabAssessmentManager implements Runnable {
                 .configDao().getConfigValue(InternalConfig.TRACING_KEY_PARAM).getValue();
 
         RestClient.getInstance()
-                .get(InternalConfig.POSITIVE_CONTACTS_URL, myDevKey, PositiveContactDTO::fromJson, (PositiveContactDTO prec) -> {
+                .get(InternalConfig.POSITIVE_CONTACTS_URL, myDevKey, PositiveContactDTO::fromJson,
+                        (PositiveContactDTO prec) -> {
 
-                    if (prec == null
-                            || ConTracUtils.numberToDate(prec.getCommunicatedOn())
-                            .isBefore(LocalDate.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH))) {
+                            if (prec == null
+                                    || ConTracUtils.numberToDate(prec.getCommunicatedOn())
+                                    .isBefore(LocalDate.now().minusDays(InternalConfig.TRACING_DAYS_LENGTH))) {
 
-                        final RestClient.GenericServiceResource dto =
-                                PositiveContactDTO.builder()
-                                        .deviceKey(myDevKey)
-                                        .communicatedOn(ConTracUtils.dateToNumber(LocalDate.now()))
-                                        .build();
+                                final RestClient.GenericServiceResource dto =
+                                        PositiveContactDTO.builder()
+                                                .deviceKey(myDevKey)
+                                                .communicatedOn(ConTracUtils.dateToNumber(LocalDate.now()))
+                                                .build();
 
-                        Log.d(TAG, "Sending device positivity:  " + dto);
+                                Log.d(TAG, "Sending device positivity:  " + dto);
 
-                        RestClient.getInstance()
-                                .post(InternalConfig.POSITIVE_CONTACTS_URL, dto,
-                                        PositiveContactDTO::toJson, PositiveContactDTO::fromJson,
-                                        ConTracUtils::printSaved);
-                    } else {
-                        Log.d(TAG, "Positivity already present: " + prec);
-                    }
-                });
+                                RestClient.getInstance()
+                                        .post(InternalConfig.POSITIVE_CONTACTS_URL, dto,
+                                                PositiveContactDTO::toJson, PositiveContactDTO::fromJson,
+                                                ConTracUtils::printSaved);
+                            } else {
+                                Log.d(TAG, "Positivity already present: " + prec);
+                            }
+                        });
     }
 
     private void saveSwabState(final Integer reportedOn, final RiskZone riskZone) {

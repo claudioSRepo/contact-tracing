@@ -14,7 +14,8 @@ public class WifiUtils {
     public static boolean isDeviceConnectedToWifi() {
 
         try {
-            final WifiManager wifiMgr = (WifiManager) CovidTracingAndroidApp.getAppContext().getSystemService(Context.WIFI_SERVICE);
+            final WifiManager wifiMgr = (WifiManager)
+                    CovidTracingAndroidApp.getAppContext().getSystemService(Context.WIFI_SERVICE);
 
             if (wifiMgr.isWifiEnabled()) { // Wi-Fi adapter is ON
 

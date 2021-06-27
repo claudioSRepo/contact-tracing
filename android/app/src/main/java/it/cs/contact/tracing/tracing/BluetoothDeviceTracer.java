@@ -28,14 +28,17 @@ public class BluetoothDeviceTracer {
     private static final BigDecimal MINUTES_FROM_LAST_SCAN = BigDecimal.valueOf(BL_SCAN_SCHEDULING_OFFSET).
             divide(new BigDecimal("60000"), 1, RoundingMode.HALF_UP);
 
-    public static void trace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
+    public static void trace(final BluetoothDevice rawDevice, final String deviceKey,
+                             final int rssiSignalStrength, final BlType blType) {
 
         CovidTracingAndroidApp.getThreadPool().execute(
-                () -> new BluetoothDeviceTracer().runAsyncTrace(rawDevice, deviceKey, rssiSignalStrength, blType));
+                () -> new BluetoothDeviceTracer()
+                        .runAsyncTrace(rawDevice, deviceKey, rssiSignalStrength, blType));
         ConTracUtils.wait(1);
     }
 
-    private void runAsyncTrace(final BluetoothDevice rawDevice, final String deviceKey, final int rssiSignalStrength, final BlType blType) {
+    private void runAsyncTrace(final BluetoothDevice rawDevice, final String deviceKey,
+                               final int rssiSignalStrength, final BlType blType) {
 
         final BigDecimal estimatedDistance = getDistance(rssiSignalStrength);
         final boolean indoor = WifiUtils.isDeviceConnectedToWifi();
@@ -44,7 +47,8 @@ public class BluetoothDeviceTracer {
 
         if (exposure.compareTo(BigDecimal.valueOf(MIN_EXPOSURE_TRACING)) >= 0) {
 
-            insert(toDeviceEntity(rssiSignalStrength, deviceKey, rawDevice, blType, estimatedDistance, exposure, indoor, noise));
+            insert(toDeviceEntity(rssiSignalStrength, deviceKey, rawDevice,
+                    blType, estimatedDistance, exposure, indoor, noise));
         }
     }
 
@@ -103,7 +107,8 @@ public class BluetoothDeviceTracer {
         return distance.max(InternalConfig.MIN_DISTANCE).min(InternalConfig.MAX_DISTANCE);
     }
 
-    private BigDecimal getExposure(final BigDecimal distance, final boolean deviceConnectedToWifi, final DecibelMeter.Noise noise) {
+    private BigDecimal getExposure(final BigDecimal distance, final boolean deviceConnectedToWifi,
+                                   final DecibelMeter.Noise noise) {
 
         final BigDecimal indoorMultiplier = deviceConnectedToWifi ? new BigDecimal("4") : BigDecimal.ONE;
         final BigDecimal noiseMultiplier = InternalConfig.NOISE_MULTIPLIER_MAP.get(noise);

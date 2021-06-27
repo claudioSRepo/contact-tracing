@@ -153,7 +153,8 @@ public class BleGattServer implements Runnable {
     private void startServer() {
 
         Log.i(TAG, "Starting gatt server.");
-        final BluetoothGattServer mBluetoothGattServer = mBluetoothManager.openGattServer(context, mGattServerCallback);
+        final BluetoothGattServer mBluetoothGattServer
+                = mBluetoothManager.openGattServer(context, mGattServerCallback);
 
         mGattServerCallback.setGattServer(mBluetoothGattServer);
 
@@ -162,11 +163,13 @@ public class BleGattServer implements Runnable {
             return;
         }
 
-        final BluetoothGattService service = new BluetoothGattService(InternalConfig.BLE_KEY_EXCHANGE_SERVICE_UUID,
+        final BluetoothGattService service
+                = new BluetoothGattService(InternalConfig.BLE_KEY_EXCHANGE_SERVICE_UUID,
                 BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
 
-        final BluetoothGattCharacteristic keyGattCharacteristic = new BluetoothGattCharacteristic(InternalConfig.BLE_KEY_EXCHANGE_CHARACTERISTIC_UUID,
+        final BluetoothGattCharacteristic keyGattCharacteristic
+                = new BluetoothGattCharacteristic(InternalConfig.BLE_KEY_EXCHANGE_CHARACTERISTIC_UUID,
                 BluetoothGattCharacteristic.PROPERTY_READ,
                 BluetoothGattCharacteristic.PERMISSION_READ);
         keyGattCharacteristic.setValue(tracingKey);
@@ -235,13 +238,10 @@ public class BleGattServer implements Runnable {
         }
 
         @Override
-        public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
-            super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
+        public void onCharacteristicReadRequest(BluetoothDevice device, int requestId,
+                                                int offset, BluetoothGattCharacteristic characteristic) {
 
-            Log.v(TAG, "Read Characteristic for device " + device.getAddress());
-            Log.v(TAG, "Offset " + offset);
-            Log.v(TAG, "Read Characteristic " + (characteristic.getValue() != null ? new String(characteristic.getValue()) : null));
-            Log.v(TAG, "Read Characteristic " + characteristic.getStringValue(offset));
+            super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
 
             final String fromOffset = StringUtils.trimToEmpty(characteristic.getStringValue(offset));
 
